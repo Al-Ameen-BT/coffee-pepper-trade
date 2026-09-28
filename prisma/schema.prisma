@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  sessions  Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Party {
+  id        String     @id @default(cuid())
+  name      String
+  phone     String?
+  role      PartyRole
+  place     String?
+  address   String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  lots      Lot[]
+  payments  Payment[]
+  loans     Loan[]
+}
+
+model Item {
+  id    String @id @default(cuid())
+  name  String @unique
+  slug  String @unique
+  lots  Lot[]
+  loans Loan[]
+}
+
+model Fund {
+  id            String   @id @default(cuid())
+  name          String
+  type          FundType
+  opening       Float    @default(0)
+  bankName      String?
+  accountNumber String?
+  createdAt     DateTime @default(now())
+  payments      Payment[]
+  loans         Loan[]
+}
+
+model Lot {
+  id        String   @id @default(cuid())
+  kind      LotKind
+  partyId   String
+  party     Party    @relation(fields: [partyId], references: [id])
+  itemId    String
+  item      Item     @relation(fields: [itemId], references: [id])
+  date      DateTime
+  totalKg   Float
+  notes     String?
+  billNo    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  fixings   Fixing[]
+
+  @@index([partyId])
+  @@index([itemId])
+  @@index([date])
+}
+
+model Fixing {
+  id        String   @id @default(cuid())
+  lotId     String
+  lot       Lot      @relation(fields: [lotId], references: [id])
+  date      DateTime
+  kg        Float
+  rate      Float
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([lotId])
+}
+
+model Payment {
+  id        String       @id @default(cuid())
+  partyId   String
+  party     Party        @relation(fields: [partyId], references: [id])
+  date      DateTime
+  amount    Float
+  direction Direction
+  tradeType TradeType
+  fundId    String
+  fund      Fund         @relation(fields: [fundId], references: [id])
+  billNo    String       @unique
+  itemId    String?
+  priceKg   Float?
+  rate      Float?
+  method    String?
+  notes     String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([partyId])
+  @@index([fundId])
+  @@index([date])
+}
+
+model Loan {
+  id        String   @id @default(cuid())
+  partyId   String
+  party     Party    @relation(fields: [partyId], references: [id])
+  date      DateTime
+  amount    Float
+  kind      LoanKind
+  fundId    String
+  fund      Fund     @relation(fields: [fundId], references: [id])
+  itemId    String?
+  item      Item?    @relation(fields: [itemId], references: [id])
+  method    String?
+  purpose   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([partyId])
+  @@index([fundId])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum PartyRole {
+  SUPPLIER
+  BUYER
+  BOTH
+}
+
+enum FundType {
+  CASH
+  CURRENT
+  CC
+}
+
+enum LotKind {
+  PURCHASE
+  SALE
+}
+
+enum Direction {
+  PAY
+  RECEIVE
+}
+
+enum TradeType {
+  PURCHASE
+  SALE
+}
+
+enum LoanKind {
+  LOAN_GIVEN
+  LOAN_TAKEN
+  ADVANCE_GIVEN
+  ADVANCE_TAKEN
+}
