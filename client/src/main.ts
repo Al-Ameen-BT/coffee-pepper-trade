@@ -113,20 +113,103 @@ export function toast(message: string, type: "success" | "error" | "info" = "inf
 // ─── Modal ────────────────────────────────────────────────────────────────────
 
 export function openModal(html: string): void {
-  let bg = document.querySelector(".modal-bg");
+  let bg = document.getElementById("global-modal-bg") as HTMLElement | null;
   if (!bg) {
+    document.querySelectorAll(".modal-bg").forEach((el) => el.remove());
     bg = document.createElement("div");
+    bg.id = "global-modal-bg";
     bg.className = "modal-bg";
     document.body.appendChild(bg);
-    bg.addEventListener("click", (e) => { if (e.target === bg) closeModal(); });
+
+    bg.addEventListener("click", (e) => {
+      if (e.target === bg) {
+        closeModal();
+      }
+    });
   }
-  bg.innerHTML = `<div class="modal">${html}</div>`;
+
+  bg.innerHTML = `
+    <div class="modal">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:-10px;position:relative;z-index:10;">
+        <button type="button" class="modal-close-x" style="background:none;border:none;font-size:24px;line-height:1;cursor:pointer;color:var(--muted);padding:4px 8px;" title="Close (Esc)">&times;</button>
+      </div>
+      ${html}
+    </div>
+  `;
   bg.classList.add("open");
+  bg.style.display = "grid";
+
+  // Bind close to all close and cancel buttons in the modal
+  bg.querySelectorAll("button").forEach((btn) => {
+    const text = btn.textContent?.trim().toLowerCase();
+    const isCancel =
+      text === "cancel" ||
+      text === "close" ||
+      text === "×" ||
+      btn.classList.contains("modal-close-x") ||
+      btn.hasAttribute("data-close-modal") ||
+      (btn.getAttribute("type") === "button" && btn.classList.contains("secondary"));
+
+    if (isCancel) {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeModal();
+      };
+    }
+  });
 }
 
 export function closeModal(): void {
-  document.querySelector(".modal-bg")?.classList.remove("open");
+  document.querySelectorAll(".modal-bg").forEach((m) => {
+    m.classList.remove("open");
+    (m as HTMLElement).style.display = "none";
+    m.innerHTML = "";
+  });
+  const bg = document.getElementById("global-modal-bg");
+  if (bg) {
+    bg.classList.remove("open");
+    bg.style.display = "none";
+    bg.innerHTML = "";
+  }
 }
+
+// Expose to global window object for inline onclick handlers (e.g. onclick="closeModal()" or onclick="window.closeModal()")
+(window as any).closeModal = closeModal;
+(window as any).openModal = openModal;
+
+// Close active modal on Escape key press
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    closeModal();
+  }
+});
+
+// Global capturing click listener for any cancel / close buttons anywhere in a modal
+document.addEventListener(
+  "click",
+  (e) => {
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+    const btn = target.closest("button");
+    if (!btn) return;
+
+    const text = btn.textContent?.trim().toLowerCase();
+    const isCancel =
+      text === "cancel" ||
+      text === "close" ||
+      text === "×" ||
+      btn.classList.contains("modal-close-x") ||
+      btn.hasAttribute("data-close-modal");
+
+    if (isCancel && btn.closest(".modal-bg, .modal")) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeModal();
+    }
+  },
+  true,
+);
 
 // ─── Render ───────────────────────────────────────────────────────────────────
 

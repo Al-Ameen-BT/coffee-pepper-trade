@@ -141,7 +141,7 @@ export async function render(): Promise<void> {
           <label>Notes <input name="notes" placeholder="Cheque no., UPI, receipt no."></label>
           <div class="actions">
             <button class="btn gold" type="submit">Confirm Repayment</button>
-            <button class="btn secondary" type="button" onclick="closeModal()">Cancel</button>
+            <button class="btn secondary" type="button" data-close-modal onclick="closeModal()">Cancel</button>
           </div>
         </form>
       `);

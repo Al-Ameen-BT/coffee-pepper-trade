@@ -70,7 +70,7 @@ export async function render(): Promise<void> {
         <label>Notes <textarea name="notes" rows="2"></textarea></label>
         <div class="actions">
           <button class="btn" type="submit">Save lot</button>
-          <button class="btn secondary" type="button" onclick="closeModal()">Cancel</button>
+          <button class="btn secondary" type="button" data-close-modal onclick="closeModal()">Cancel</button>
         </div>
       </form>
     `);
@@ -151,7 +151,7 @@ export async function render(): Promise<void> {
           </div>
           <div class="actions">
             <button class="btn gold" type="submit">Save tranche</button>
-            <button class="btn secondary" type="button" onclick="closeModal()">Cancel</button>
+            <button class="btn secondary" type="button" data-close-modal onclick="closeModal()">Cancel</button>
           </div>
         </form>
       `);
