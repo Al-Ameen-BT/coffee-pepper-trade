@@ -7,6 +7,7 @@ export type LotKind = "PURCHASE" | "SALE";
 export type Direction = "PAY" | "RECEIVE";
 export type TradeType = "PURCHASE" | "SALE";
 export type LoanKind = "LOAN_GIVEN" | "LOAN_TAKEN" | "ADVANCE_GIVEN" | "ADVANCE_TAKEN";
+export type LoanStatus = "ACTIVE" | "PARTIALLY_SETTLED" | "SETTLED";
 
 export interface UserDTO {
   id: string;
@@ -38,6 +39,7 @@ export interface FundDTO {
   opening: string;
   bankName: string | null;
   accountNumber: string | null;
+  accountNumberMasked: string | null;
   balance: string;
 }
 
@@ -50,6 +52,11 @@ export interface LotDTO {
   itemName: string;
   date: string;
   totalKg: string;
+  grossWeightKg?: string | null;
+  bagCount?: number | null;
+  bagTareKg?: string | null;
+  moisturePercent?: string | null;
+  driageDeductionKg?: string | null;
   notes: string | null;
   billNo: string | null;
   pricedKg: string;
@@ -72,6 +79,8 @@ export interface PaymentDTO {
   partyName: string;
   date: string;
   amount: string;
+  advanceDeducted?: string | null;
+  grossAmount?: string | null;
   direction: Direction;
   tradeType: TradeType;
   fundId: string;
@@ -90,6 +99,8 @@ export interface LoanDTO {
   partyName: string;
   date: string;
   amount: string;
+  balanceAmount: string;
+  status: LoanStatus;
   kind: LoanKind;
   fundId: string;
   fundName: string;
@@ -97,6 +108,26 @@ export interface LoanDTO {
   itemName: string | null;
   method: string | null;
   purpose: string | null;
+  notes: string | null;
+}
+
+export interface AdvanceAdjustmentDTO {
+  id: string;
+  paymentId: string;
+  loanId: string;
+  amount: string;
+  date: string;
+  notes: string | null;
+}
+
+export interface LoanRepaymentDTO {
+  id: string;
+  loanId: string;
+  fundId: string;
+  fundName: string;
+  amount: string;
+  date: string;
+  method: string | null;
   notes: string | null;
 }
 

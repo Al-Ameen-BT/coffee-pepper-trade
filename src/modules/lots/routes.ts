@@ -14,7 +14,12 @@ const lotSchema = z.object({
   partyId: z.string().min(1),
   itemId: z.string().min(1),
   date: z.string(),
-  totalKg: z.number().positive(),
+  totalKg: z.number().positive().optional(),
+  grossWeightKg: z.number().positive().optional(),
+  bagCount: z.number().int().nonnegative().optional(),
+  bagTareKg: z.number().nonnegative().optional(),
+  moisturePercent: z.number().nonnegative().optional(),
+  driageDeductionKg: z.number().nonnegative().optional(),
   notes: z.string().optional(),
   billNo: z.string().optional(),
   rate: z.number().positive().optional(),
@@ -23,7 +28,13 @@ const lotSchema = z.object({
 
 function toDTO(l: {
   id: string; kind: string; partyId: string; itemId: string; date: Date;
-  totalKg: { toString(): string }; notes: string | null; billNo: string | null;
+  totalKg: { toString(): string };
+  grossWeightKg?: { toString(): string } | number | null;
+  bagCount?: number | null;
+  bagTareKg?: { toString(): string } | number | null;
+  moisturePercent?: { toString(): string } | number | null;
+  driageDeductionKg?: { toString(): string } | number | null;
+  notes: string | null; billNo: string | null;
   party: { name: string }; item: { name: string };
   fixings: { kg: { toString(): string }; rate: { toString(): string } }[];
 }): LotDTO {
@@ -33,7 +44,13 @@ function toDTO(l: {
   return {
     id: l.id, kind: l.kind as LotDTO["kind"], partyId: l.partyId, partyName: l.party.name,
     itemId: l.itemId, itemName: l.item.name, date: l.date.toISOString().slice(0, 10),
-    totalKg: l.totalKg.toString(), notes: l.notes, billNo: l.billNo,
+    totalKg: l.totalKg.toString(),
+    grossWeightKg: l.grossWeightKg != null ? l.grossWeightKg.toString() : null,
+    bagCount: l.bagCount ?? null,
+    bagTareKg: l.bagTareKg != null ? l.bagTareKg.toString() : null,
+    moisturePercent: l.moisturePercent != null ? l.moisturePercent.toString() : null,
+    driageDeductionKg: l.driageDeductionKg != null ? l.driageDeductionKg.toString() : null,
+    notes: l.notes, billNo: l.billNo,
     pricedKg: priced.toFixed(3), unpricedKg: unpriced.toFixed(3), fixingValue: value.toFixed(2),
   };
 }
@@ -59,6 +76,15 @@ lotsRouter.post("/", async (req, res, next) => {
   try {
     const data = lotSchema.parse(req.body);
 
+    const netWeight = data.totalKg ?? (
+      data.grossWeightKg
+        ? Math.max(0, data.grossWeightKg - (data.bagTareKg || 0) - (data.driageDeductionKg || 0))
+        : 0
+    );
+    if (!(netWeight > 0)) {
+      throw new ApiError(400, "Valid net weight (totalKg or gross minus tare/driage) is required");
+    }
+
     const lot = await prisma.$transaction(async (tx) => {
       const created = await tx.lot.create({
         data: {
@@ -66,7 +92,12 @@ lotsRouter.post("/", async (req, res, next) => {
           partyId: data.partyId,
           itemId: data.itemId,
           date: new Date(data.date),
-          totalKg: data.totalKg,
+          totalKg: netWeight,
+          grossWeightKg: data.grossWeightKg ?? null,
+          bagCount: data.bagCount ?? null,
+          bagTareKg: data.bagTareKg ?? null,
+          moisturePercent: data.moisturePercent ?? null,
+          driageDeductionKg: data.driageDeductionKg ?? null,
           notes: data.notes || null,
           billNo: data.billNo || null,
         },
@@ -74,8 +105,8 @@ lotsRouter.post("/", async (req, res, next) => {
       });
 
       if (data.rate && data.rate > 0) {
-        const want = data.fixKg ?? data.totalKg;
-        const kgVal = Math.min(Math.max(0, want), data.totalKg);
+        const want = data.fixKg ?? netWeight;
+        const kgVal = Math.min(Math.max(0, want), netWeight);
         if (kgVal > 0) {
           await tx.fixing.create({
             data: { lotId: created.id, date: new Date(data.date), kg: kgVal, rate: data.rate, notes: "Entered with lot" },

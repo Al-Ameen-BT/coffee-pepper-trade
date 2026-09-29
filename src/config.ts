@@ -7,6 +7,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   JWT_SECRET: z.string().min(16),
   JWT_EXPIRES_IN: z.string().default("7d"),
+  ENCRYPTION_KEY: z.string().min(16).default("hill-trade-bank-key-32-chars-long!"),
   CLIENT_URL: z.string().default("http://localhost:5173"),
 });
 

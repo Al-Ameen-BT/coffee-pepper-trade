@@ -1,6 +1,6 @@
 import { api } from "../api.js";
 import { esc, money, today } from "../format.js";
-import { renderShell, toast } from "../main.js";
+import { renderShell, toast, openModal, closeModal } from "../main.js";
 import type { LoanDTO, PartyDTO, ItemDTO, FundDTO } from "../../../shared/types.js";
 
 export async function render(): Promise<void> {
@@ -21,6 +21,8 @@ export async function render(): Promise<void> {
   const rows = loans.length
     ? loans.map((l) => {
         const given = l.kind === "LOAN_GIVEN" || l.kind === "ADVANCE_GIVEN";
+        const bal = Number(l.balanceAmount ?? l.amount) || 0;
+        const isSettled = l.status === "SETTLED" || bal <= 0.01;
         return `
           <tr>
             <td>${l.date}</td>
@@ -29,12 +31,13 @@ export async function render(): Promise<void> {
             <td>${l.itemName ? esc(l.itemName) : "—"}</td>
             <td>${esc(l.fundName)}</td>
             <td class="num">${money(l.amount)}</td>
-            <td>${given ? `<span class="tag pay">− ${money(l.amount)}</span>` : `<span class="tag receive">+ ${money(l.amount)}</span>`}</td>
-            <td>${esc(l.notes || "")}</td>
+            <td class="num"><strong>${money(bal)}</strong></td>
+            <td>${isSettled ? '<span class="tag ok">Settled</span>' : `<span class="tag ${given ? "pay" : "receive"}">${esc(l.status || "ACTIVE")}</span>`}</td>
+            <td>${!isSettled ? `<button class="btn secondary" style="padding:2px 8px;font-size:11px" data-repay="${l.id}">Repay</button>` : ""}</td>
           </tr>
         `;
       }).join("")
-    : `<tr><td colspan="8" class="empty">No loans or advances yet.</td></tr>`;
+    : `<tr><td colspan="9" class="empty">No loans or advances yet.</td></tr>`;
 
   renderShell(`
     <div class="topbar">
@@ -107,11 +110,71 @@ export async function render(): Promise<void> {
     <div class="card">
       <h3>All loans & advances</h3>
       <table>
-        <thead><tr><th>Date</th><th>Type</th><th>Person</th><th>Against</th><th>Account</th><th class="num">Amount</th><th>Fund effect</th><th>Notes</th></tr></thead>
+        <thead><tr><th>Date</th><th>Type</th><th>Party</th><th>Item</th><th>Account</th><th class="num">Original</th><th class="num">Balance</th><th>Status</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
   `);
+
+  // Wire repay buttons
+  document.querySelectorAll("[data-repay]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const loanId = (btn as HTMLElement).dataset.repay!;
+      const loan = loans.find((l) => l.id === loanId);
+      if (!loan) return;
+
+      openModal(`
+        <h3 style="font-family:Fraunces,serif;font-size:22px;margin:0 0 8px">Record Repayment</h3>
+        <p style="color:var(--muted);margin:0 0 12px">Repaying ${esc(loan.partyName)} · Balance: ${money(loan.balanceAmount)}</p>
+        <form class="stack" id="repay-form">
+          <label>Date <input required type="date" name="date" value="${today()}"></label>
+          <label>Amount ₹ <input required type="number" step="0.01" min="0.01" max="${loan.balanceAmount}" name="amount" value="${loan.balanceAmount}"></label>
+          <div class="row">
+            <label>Method
+              <select name="method" id="repay-method">
+                <option value="cash">Cash</option>
+                <option value="bank">Bank</option>
+              </select>
+            </label>
+            <label>Account <select required name="fundId" id="repay-account"></select></label>
+          </div>
+          <label>Notes <input name="notes" placeholder="Cheque no., UPI, receipt no."></label>
+          <div class="actions">
+            <button class="btn gold" type="submit">Confirm Repayment</button>
+            <button class="btn secondary" type="button" onclick="closeModal()">Cancel</button>
+          </div>
+        </form>
+      `);
+
+      const methodSel = document.getElementById("repay-method") as HTMLSelectElement;
+      const accSel = document.getElementById("repay-account") as HTMLSelectElement;
+      const fillRepayAcc = () => {
+        const list = methodSel.value === "cash" ? funds.filter((f) => f.type === "CASH") : funds.filter((f) => f.type !== "CASH");
+        accSel.innerHTML = list.map((f) => `<option value="${f.id}">${esc(f.name)} · ${money(f.balance)}</option>`).join("");
+      };
+      methodSel.addEventListener("change", fillRepayAcc);
+      fillRepayAcc();
+
+      document.getElementById("repay-form")!.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target as HTMLFormElement);
+        try {
+          await api.post(`/loans/${loanId}/repay`, {
+            date: fd.get("date"),
+            amount: Number(fd.get("amount")),
+            fundId: fd.get("fundId"),
+            method: fd.get("method") || undefined,
+            notes: fd.get("notes") || undefined,
+          });
+          closeModal();
+          toast("Repayment recorded", "success");
+          render();
+        } catch (err) {
+          toast(err instanceof Error ? err.message : "Failed", "error");
+        }
+      });
+    });
+  });
 
   // Fund account selectors
   function fillAccounts(methodId: string, accountId: string) {

@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
+import { encrypt } from "../src/lib/crypto.js";
 
 const prisma = new PrismaClient();
 
@@ -125,7 +126,7 @@ async function main() {
   });
 
   const savings = await prisma.fund.create({
-    data: { name: "HDFC Savings", type: "CURRENT", opening: 50000, bankName: "HDFC Bank", accountNumber: "50200012345678" },
+    data: { name: "HDFC Savings", type: "CURRENT", opening: 50000, bankName: "HDFC Bank", accountNumber: encrypt("50200012345678") },
   });
   console.log("Created funds");
 
@@ -138,7 +139,7 @@ async function main() {
   const p1 = await prisma.lot.create({
     data: {
       kind: "PURCHASE", partyId: ramesh.id, itemId: coffee!.id,
-      date: new Date("2026-09-12"), totalKg: 1250, notes: "Cherry, first lot", billNo: "P-001",
+      date: new Date("2026-09-12"), grossWeightKg: 1275, bagCount: 25, bagTareKg: 25, totalKg: 1250, notes: "Cherry, first lot", billNo: "P-001",
     },
   });
 
@@ -243,16 +244,16 @@ async function main() {
   await prisma.loan.createMany({
     data: [
       {
-        partyId: lakshmi.id, date: new Date("2026-09-10"), amount: 25000,
+        partyId: lakshmi.id, date: new Date("2026-09-10"), amount: 25000, balanceAmount: 25000, status: "ACTIVE",
         kind: "LOAN_GIVEN", fundId: cash.id, notes: "Personal loan, not against goods",
       },
       {
-        partyId: arun.id, date: new Date("2026-09-20"), amount: 15000,
+        partyId: arun.id, date: new Date("2026-09-20"), amount: 15000, balanceAmount: 15000, status: "ACTIVE",
         kind: "ADVANCE_GIVEN", fundId: current.id, itemId: coffee!.id,
         purpose: "trade_advance", notes: "Advance against P-003",
       },
       {
-        partyId: meena.id, date: new Date("2026-09-25"), amount: 50000,
+        partyId: meena.id, date: new Date("2026-09-25"), amount: 50000, balanceAmount: 50000, status: "ACTIVE",
         kind: "LOAN_TAKEN", fundId: current.id, notes: "Short term loan",
       },
     ],

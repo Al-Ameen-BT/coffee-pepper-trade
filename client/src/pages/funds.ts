@@ -11,7 +11,11 @@ export async function render(): Promise<void> {
       <div class="card">
         <h3>${fundType(f.type)}</h3>
         <p class="metric">${money(f.balance)}</p>
-        <p>${esc(f.name)}<br><small>Opening ${money(f.opening)}${f.bankName ? " · " + esc(f.bankName) : ""}${f.accountNumber ? " · " + esc(f.accountNumber) : ""}</small></p>
+        <p>${esc(f.name)}<br><small>Opening ${money(f.opening)}${f.bankName ? " · " + esc(f.bankName) : ""}${
+          f.accountNumberMasked
+            ? `<br><span style="color:var(--muted)">A/c:</span> <strong id="acc-${f.id}">${esc(f.accountNumberMasked)}</strong> <button class="btn secondary" style="padding:2px 8px;font-size:11px;margin-left:6px" data-reveal="${f.id}">Reveal</button>`
+            : ""
+        }</small></p>
       </div>
     `).join("")
     : `<div class="card empty">No accounts yet. Create one above.</div>`;
@@ -20,7 +24,7 @@ export async function render(): Promise<void> {
     <div class="topbar">
       <div>
         <h2>Cash & Bank</h2>
-        <p>Manage fund accounts and view all movements.</p>
+        <p>Manage fund accounts, view movements, and secure encrypted bank details.</p>
       </div>
     </div>
     <div class="grid three" style="margin-bottom:16px">${cards}</div>
@@ -39,9 +43,9 @@ export async function render(): Promise<void> {
         </div>
         <div class="row">
           <label>Opening balance ₹ <input type="number" step="0.01" name="opening" value="0"></label>
-          <label>Bank name <input name="bankName" placeholder="Optional"></label>
+          <label>Bank name <input name="bankName" placeholder="Bank name (SBI, HDFC, Canara...)"></label>
         </div>
-        <label>Account number <input name="accountNumber" placeholder="Optional"></label>
+        <label>Account number <input name="accountNumber" placeholder="Securely encrypted at rest with AES-256-GCM"></label>
         <div class="actions"><button class="btn" type="submit">Create account</button></div>
       </form>
     </div>
@@ -50,6 +54,23 @@ export async function render(): Promise<void> {
       <div id="movements-table"><div class="empty">Loading...</div></div>
     </div>
   `);
+
+  // Wire reveal buttons
+  document.querySelectorAll("[data-reveal]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const fundId = (btn as HTMLElement).dataset.reveal!;
+      try {
+        const res = await api.get<{ accountNumber: string }>(`/funds/${fundId}/reveal-account`);
+        const accEl = document.getElementById(`acc-${fundId}`);
+        if (accEl) {
+          accEl.textContent = res.accountNumber || "—";
+          (btn as HTMLElement).style.display = "none";
+        }
+      } catch (err) {
+        toast("Failed to reveal account number", "error");
+      }
+    });
+  });
 
   document.getElementById("new-fund-form")!.addEventListener("submit", async (e) => {
     e.preventDefault();

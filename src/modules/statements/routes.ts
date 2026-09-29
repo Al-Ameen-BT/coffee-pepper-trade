@@ -2,6 +2,7 @@ import { Router } from "express";
 import { prisma } from "../../db.js";
 import { requireAuth } from "../../auth/middleware.js";
 import { cashReports, computeTotals, partyTrade, partyUnpriced } from "../../lib/compute.js";
+import { maskAccountNumber } from "../../lib/crypto.js";
 import type { DashboardData, BalanceSheetReport, PnLReport, PartySummaryDTO, FundDTO } from "../../../shared/types.js";
 
 export const statementsRouter = Router();
@@ -86,10 +87,13 @@ dashboardRouter.get("/", async (_req, res, next) => {
       bank: t.bank.toFixed(2),
       toGet: t.toGet.toFixed(2),
       toPay: t.toPay.toFixed(2),
-      funds: t.funds.map((f) => ({
-        id: f.id, name: f.name, type: f.type as FundDTO["type"], opening: f.opening.toString(),
-        bankName: f.bankName, accountNumber: f.accountNumber, balance: f.balance.toFixed(2),
-      })),
+      funds: t.funds.map((f) => {
+        const masked = maskAccountNumber(f.accountNumber);
+        return {
+          id: f.id, name: f.name, type: f.type as FundDTO["type"], opening: f.opening.toString(),
+          bankName: f.bankName, accountNumber: masked, accountNumberMasked: masked, balance: f.balance.toFixed(2),
+        };
+      }),
       unpriced: Object.fromEntries(Object.entries(t.unpriced).map(([k, v]) => [k, v.toFixed(3)])),
       stock: Object.fromEntries(Object.entries(t.stock).map(([k, v]) => [k, v.toFixed(3)])),
       items: items.map((i) => ({ id: i.id, name: i.name, slug: i.slug })),
