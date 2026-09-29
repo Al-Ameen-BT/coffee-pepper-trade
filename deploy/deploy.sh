@@ -113,9 +113,9 @@ if [ -f "${ROOT_DIR}/.env" ]; then
     set +a
 fi
 
-# 4. Install dependencies
-echo "==> Installing dependencies..."
-npm install
+# 4. Install dependencies (force install devDependencies for build tools like typescript and vite)
+echo "==> Installing dependencies (including build tools & type definitions)..."
+NODE_ENV=development npm install --include=dev
 
 # 5. Generate Prisma Client & Sync DB schema with MySQL
 echo "==> Updating database schema (MySQL)..."
