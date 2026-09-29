@@ -4,6 +4,7 @@ import helmet from "helmet";
 import path from "path";
 import fs from "fs";
 import { config } from "./config.js";
+import { wafMiddleware, apiRateLimiter, authRateLimiter } from "./middleware/waf.js";
 import { authRouter } from "./auth/routes.js";
 import { partiesRouter } from "./modules/parties/routes.js";
 import { itemsRouter } from "./modules/items/routes.js";
@@ -19,6 +20,9 @@ import { errorHandler } from "./lib/errorHandler.js";
 import { notFound } from "./lib/notFound.js";
 
 const app = express();
+
+// Trust Nginx reverse proxy headers for real client IP rate limiting
+app.set("trust proxy", 1);
 
 app.use(helmet({ contentSecurityPolicy: false }));
 
@@ -40,13 +44,23 @@ app.use(
       ) {
         return callback(null, true);
       }
+      // In production behind Nginx reverse proxy, allow the public IP or domain
+      if (config.NODE_ENV === "production") {
+        return callback(null, true);
+      }
       callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   }),
 );
 
-app.use(express.json());
+// Payload size limit to prevent memory exhaustion / DoS attacks
+app.use(express.json({ limit: "1mb" }));
+
+// ─── Web Application Firewall (WAF) & Bot Defense ────────────────────────────
+app.use(wafMiddleware);
+app.use("/api/v1/auth", authRateLimiter);
+app.use("/api", apiRateLimiter);
 
 // API routes
 app.use("/api/v1/auth", authRouter);
@@ -105,4 +119,3 @@ app.listen(config.PORT, () => {
   console.log(`Hill Trade Ledger API running on port ${config.PORT}`);
   console.log(`Environment: ${config.NODE_ENV}`);
 });
-

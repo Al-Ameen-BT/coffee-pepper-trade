@@ -9,6 +9,8 @@ export function renderLogin(): void {
         <p>Coffee · Black Pepper trading management</p>
         <div id="login-error" class="alert error" style="display:none;margin-bottom:16px;padding:10px 14px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:8px;font-size:13px;line-height:1.4;"></div>
         <form id="login-form" class="stack">
+          <!-- Honeypot anti-bot field (invisible to users, filled by automated bots) -->
+          <input type="text" name="hp_field" tabindex="-1" autocomplete="off" aria-hidden="true" style="opacity:0;position:absolute;top:0;left:0;height:0;width:0;z-index:-1;pointer-events:none;">
           <label>Email
             <input required type="email" name="email" placeholder="Enter your email" autocomplete="email">
           </label>
@@ -30,13 +32,24 @@ export function renderLogin(): void {
       errBox.style.display = "none";
       errBox.textContent = "";
     }
+
+    const fd = new FormData(form);
+    const hp = (fd.get("hp_field") as string)?.trim();
+    if (hp) {
+      // Bot detected via honeypot
+      if (errBox) {
+        errBox.textContent = "Automated submission rejected.";
+        errBox.style.display = "block";
+      }
+      return;
+    }
+
     const submitBtn = form.querySelector("button[type=submit]") as HTMLButtonElement;
     if (submitBtn) {
       submitBtn.disabled = true;
       submitBtn.textContent = "Signing In...";
     }
 
-    const fd = new FormData(form);
     const email = (fd.get("email") as string)?.trim();
     const password = fd.get("password") as string;
 
@@ -58,4 +71,3 @@ export function renderLogin(): void {
     }
   });
 }
-
