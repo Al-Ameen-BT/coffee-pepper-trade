@@ -84,12 +84,13 @@ loansRouter.post("/:id/repay", async (req, res, next) => {
     const loan = await prisma.loan.findUnique({ where: { id: req.params.id } });
     if (!loan) throw new ApiError(404, "Loan or advance not found");
 
-    if (data.amount > loan.balanceAmount + 0.0001) {
-      throw new ApiError(400, `Cannot repay more than remaining balance (${loan.balanceAmount.toFixed(2)})`);
+    const bal = Number(loan.balanceAmount);
+    if (data.amount > bal + 0.0001) {
+      throw new ApiError(400, `Cannot repay more than remaining balance (${bal.toFixed(2)})`);
     }
 
     const updated = await prisma.$transaction(async (tx) => {
-      const newBalance = Math.max(0, loan.balanceAmount - data.amount);
+      const newBalance = Math.max(0, bal - data.amount);
       const newStatus = newBalance <= 0.001 ? "SETTLED" : "PARTIALLY_SETTLED";
 
       await tx.loanRepayment.create({

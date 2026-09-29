@@ -4,6 +4,56 @@ import request from "supertest";
 import { authRouter } from "../src/auth/routes.js";
 import { errorHandler } from "../src/lib/errorHandler.js";
 
+import { vi } from "vitest";
+import bcrypt from "bcrypt";
+
+const adminPasswordHash = await bcrypt.hash("admin12345", 10);
+const userPasswordHash = await bcrypt.hash("user12345", 10);
+
+vi.mock("../src/db.js", () => {
+  return {
+    prisma: {
+      user: {
+        findUnique: vi.fn(async ({ where }: { where: { email?: string; id?: string } }) => {
+          if (where.email === "admin@hilltrade.com" || where.id === "usr_admin") {
+            return {
+              id: "usr_admin",
+              email: "admin@hilltrade.com",
+              password: adminPasswordHash,
+              name: "Admin",
+              role: "USER",
+              createdAt: new Date(),
+            };
+          }
+          if (where.email === "user@hilltrade.com" || where.id === "usr_user") {
+            return {
+              id: "usr_user",
+              email: "user@hilltrade.com",
+              password: userPasswordHash,
+              name: "Trader",
+              role: "USER",
+              createdAt: new Date(),
+            };
+          }
+          return null;
+        }),
+      },
+      payment: { findMany: vi.fn(async () => []) },
+      fund: {
+        findMany: vi.fn(async () => [
+          { id: "f1", name: "Cash", type: "CASH", opening: 10000, payments: [], loans: [] },
+          { id: "f2", name: "Bank", type: "CURRENT", opening: 50000, payments: [], loans: [] },
+        ]),
+      },
+      lot: { findMany: vi.fn(async () => []) },
+      loan: { findMany: vi.fn(async () => []) },
+      party: { findMany: vi.fn(async () => []) },
+      fixing: { findMany: vi.fn(async () => []) },
+      item: { findMany: vi.fn(async () => []) },
+    },
+  };
+});
+
 const app = express();
 app.use(express.json());
 app.use("/api/v1/auth", authRouter);

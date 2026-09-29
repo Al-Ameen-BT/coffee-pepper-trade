@@ -96,8 +96,9 @@ paymentsRouter.post("/", async (req, res, next) => {
           if (!loan || loan.partyId !== data.partyId) {
             throw new ApiError(400, `Advance record ${item.loanId} not found or does not belong to party`);
           }
-          if (item.amount > loan.balanceAmount + 0.0001) {
-            throw new ApiError(400, `Cannot deduct ${item.amount} from advance. Remaining balance is ${loan.balanceAmount.toFixed(2)}`);
+          const bal = Number(loan.balanceAmount);
+          if (item.amount > bal + 0.0001) {
+            throw new ApiError(400, `Cannot deduct ${item.amount} from advance. Remaining balance is ${bal.toFixed(2)}`);
           }
           totalAdvanceDeducted += item.amount;
         }
@@ -143,7 +144,8 @@ paymentsRouter.post("/", async (req, res, next) => {
         for (const item of data.advanceDeductions) {
           const loan = await tx.loan.findUnique({ where: { id: item.loanId } });
           if (loan) {
-            const newBal = Math.max(0, loan.balanceAmount - item.amount);
+            const bal = Number(loan.balanceAmount);
+            const newBal = Math.max(0, bal - item.amount);
             const newStatus = newBal <= 0.001 ? "SETTLED" : "PARTIALLY_SETTLED";
             await tx.advanceAdjustment.create({
               data: {
