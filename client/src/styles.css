@@ -39,6 +39,8 @@ body {
   position: sticky;
   top: 0;
   height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .brand {
@@ -47,6 +49,7 @@ body {
   align-items: center;
   padding: 0 8px 22px;
   border-bottom: 1px solid rgba(243, 230, 214, 0.12);
+  flex-shrink: 0;
 }
 
 .brand-mark {
@@ -67,7 +70,7 @@ body {
 
 .brand p { margin: 2px 0 0; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #cbb8a6; }
 
-nav { margin-top: 18px; display: flex; flex-direction: column; gap: 4px; overflow: auto; max-height: calc(100vh - 140px); }
+nav { margin-top: 18px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; flex: 1; }
 nav a {
   color: #d8c4b2;
   text-decoration: none;
@@ -83,6 +86,36 @@ nav a:hover, nav a.active {
   color: #fff;
 }
 nav a.active { box-shadow: inset 3px 0 0 var(--gold); }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(243, 230, 214, 0.12);
+  flex-shrink: 0;
+}
+
+.logout-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(255, 250, 243, 0.05);
+  border: 1px solid rgba(243, 230, 214, 0.15);
+  border-radius: 10px;
+  color: #e5d5c5;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.logout-btn:hover {
+  background: rgba(159, 18, 57, 0.25);
+  border-color: rgba(159, 18, 57, 0.5);
+  color: #ffcdd2;
+}
 
 .main { padding: 28px 32px 48px; }
 

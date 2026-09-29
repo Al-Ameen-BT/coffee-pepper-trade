@@ -37,8 +37,12 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
   if (res.status === 401) {
     clearToken();
-    window.location.href = "/login";
-    throw new ApiError(401, "Session expired");
+    if (path !== "/auth/login") {
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+      throw new ApiError(401, "Session expired");
+    }
   }
 
   if (!res.ok) {
@@ -56,3 +60,4 @@ export const api = {
   put: <T>(path: string, body: unknown) => request<T>("PUT", path, body),
   delete: <T>(path: string) => request<T>("DELETE", path),
 };
+

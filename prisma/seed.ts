@@ -19,18 +19,32 @@ async function main() {
   await prisma.user.deleteMany();
 
   // Create admin user
-  const hashedPassword = await bcrypt.hash("admin12345", 12);
-  const user = await prisma.user.upsert({
+  const adminHashed = await bcrypt.hash("admin12345", 12);
+  const adminUser = await prisma.user.upsert({
     where: { email: "admin@hilltrade.com" },
-    update: {},
+    update: { password: adminHashed, role: "ADMIN", name: "Admin" },
     create: {
       email: "admin@hilltrade.com",
-      password: hashedPassword,
+      password: adminHashed,
       name: "Admin",
       role: "ADMIN",
     },
   });
-  console.log("Created user:", user.email);
+  console.log("Created user:", adminUser.email, `(${adminUser.role})`);
+
+  // Create standard operator user
+  const userHashed = await bcrypt.hash("user12345", 12);
+  const standardUser = await prisma.user.upsert({
+    where: { email: "user@hilltrade.com" },
+    update: { password: userHashed, role: "USER", name: "Trader" },
+    create: {
+      email: "user@hilltrade.com",
+      password: userHashed,
+      name: "Trader",
+      role: "USER",
+    },
+  });
+  console.log("Created user:", standardUser.email, `(${standardUser.role})`);
 
   // Create default items
   const defaultItems = [

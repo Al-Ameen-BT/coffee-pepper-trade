@@ -7,27 +7,55 @@ export function renderLogin(): void {
       <div class="login-box">
         <h1>Hill Trade Ledger</h1>
         <p>Coffee · Black Pepper trading management</p>
+        <div id="login-error" class="alert error" style="display:none;margin-bottom:16px;padding:10px 14px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:8px;font-size:13px;line-height:1.4;"></div>
         <form id="login-form" class="stack">
           <label>Email
-            <input required type="email" name="email" placeholder="admin@hilltrade.com">
+            <input required type="email" name="email" placeholder="Enter your email" autocomplete="email">
           </label>
           <label>Password
-            <input required type="password" name="password" placeholder="Enter password">
+            <input required type="password" name="password" placeholder="Enter password" autocomplete="current-password">
           </label>
-          <button class="btn gold" type="submit" style="width:100%">Sign In</button>
+          <button class="btn gold" type="submit" style="width:100%;margin-top:8px;">Sign In</button>
         </form>
-        <p style="margin-top:16px;font-size:12px;color:var(--muted)">Default: admin@hilltrade.com / admin12345</p>
       </div>
     </div>
   `;
 
-  document.getElementById("login-form")!.addEventListener("submit", async (e) => {
+  const form = document.getElementById("login-form") as HTMLFormElement;
+  const errBox = document.getElementById("login-error") as HTMLDivElement;
+
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const fd = new FormData(e.target as HTMLFormElement);
+    if (errBox) {
+      errBox.style.display = "none";
+      errBox.textContent = "";
+    }
+    const submitBtn = form.querySelector("button[type=submit]") as HTMLButtonElement;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Signing In...";
+    }
+
+    const fd = new FormData(form);
+    const email = (fd.get("email") as string)?.trim();
+    const password = fd.get("password") as string;
+
     try {
-      await login(fd.get("email") as string, fd.get("password") as string);
+      await login(email, password);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Login failed");
+      const msg = err instanceof Error ? err.message : "Login failed";
+      if (errBox) {
+        errBox.textContent = msg;
+        errBox.style.display = "block";
+      } else {
+        alert(msg);
+      }
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Sign In";
+      }
     }
   });
 }
+
