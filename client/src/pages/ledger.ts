@@ -7,9 +7,18 @@ export async function render(): Promise<void> {
   const params = new URLSearchParams(window.location.search);
   const partyId = params.get("party");
 
-  const [parties, items] = await Promise.all([
+  const [parties, items, allSummary] = await Promise.all([
     api.get<PartyDTO[]>("/parties"),
     api.get<ItemDTO[]>("/items"),
+    api.get<{ summaries: Record<string, {
+      partyId: string;
+      totalPaid: string;
+      totalReceived: string;
+      net: string;
+      settled: boolean;
+      quantitiesByItem: Record<string, { boughtKg: string; soldKg: string }>;
+      unpricedByItem: Record<string, string>;
+    }> }>("/ledger"),
   ]);
 
   if (parties.length === 0) {
@@ -20,18 +29,25 @@ export async function render(): Promise<void> {
   const selected = parties.find((p) => p.id === partyId) || parties[0];
   const ledger = await api.get<PartyLedger>(`/ledger/${selected.id}`);
 
-  const partyRows = parties.map((p) => `
-    <tr class="${p.id === selected.id ? "selected" : ""}">
-      <td><a href="/ledger?party=${p.id}" data-nav="/ledger?party=${p.id}">${esc(p.name)}</a></td>
-      <td>${esc(p.place || "—")}</td>
-      <td>${esc(p.role)}</td>
-      ${items.map((it) => {
-        const c = ledger.quantitiesByItem[it.id] || { boughtKg: "0", soldKg: "0" };
-        return `<td class="num">${kg(c.boughtKg)}</td><td class="num">${kg(c.soldKg)}</td>`;
-      }).join("")}
-      <td>${ledger.settled ? '<span class="tag ok">Settled</span>' : Number(ledger.net) < 0 ? `<span class="tag pay">To pay ${money(ledger.net)}</span>` : `<span class="tag receive">To receive ${money(ledger.net)}</span>`}</td>
-    </tr>
-  `).join("");
+  const partyRows = parties.map((p) => {
+    const s = allSummary.summaries[p.id];
+    const isSettled = s ? s.settled : true;
+    const net = s ? Number(s.net) : 0;
+    const netStr = s ? s.net : "0.00";
+
+    return `
+      <tr class="${p.id === selected.id ? "selected" : ""}">
+        <td><a href="/ledger?party=${p.id}" data-nav="/ledger?party=${p.id}">${esc(p.name)}</a></td>
+        <td>${esc(p.place || "—")}</td>
+        <td>${esc(p.role)}</td>
+        ${items.map((it) => {
+          const c = s?.quantitiesByItem[it.id] || { boughtKg: "0", soldKg: "0" };
+          return `<td class="num">${kg(c.boughtKg)}</td><td class="num">${kg(c.soldKg)}</td>`;
+        }).join("")}
+        <td>${isSettled ? '<span class="tag ok">Settled</span>' : net < 0 ? `<span class="tag pay">To pay ${money(netStr)}</span>` : `<span class="tag receive">To receive ${money(netStr)}</span>`}</td>
+      </tr>
+    `;
+  }).join("");
 
   const ledgerRows = ledger.rows.length
     ? ledger.rows.map((r) => `

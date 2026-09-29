@@ -8,6 +8,57 @@ import type { PartyLedger } from "../../../shared/types.js";
 export const ledgerRouter = Router();
 ledgerRouter.use(requireAuth);
 
+ledgerRouter.get("/", async (req, res, next) => {
+  try {
+    const [parties, lots, payments, items] = await Promise.all([
+      prisma.party.findMany({ orderBy: { name: "asc" } }),
+      prisma.lot.findMany({ include: { fixings: true } }),
+      prisma.payment.findMany({ include: { fund: true } }),
+      prisma.item.findMany({ orderBy: { name: "asc" } }),
+    ]);
+
+    const summaries: Record<string, {
+      partyId: string;
+      totalPaid: string;
+      totalReceived: string;
+      net: string;
+      settled: boolean;
+      quantitiesByItem: Record<string, { boughtKg: string; soldKg: string }>;
+      unpricedByItem: Record<string, string>;
+    }> = {};
+
+    for (const party of parties) {
+      const partyLots = lots.filter((l) => l.partyId === party.id);
+      const partyPayments = payments.filter((p) => p.partyId === party.id);
+      const trade = partyTrade(partyPayments as any);
+
+      const quantitiesByItem: Record<string, { boughtKg: string; soldKg: string }> = {};
+      const unpricedByItem: Record<string, string> = {};
+
+      for (const item of items) {
+        const c = partyCommodity(partyLots as any, party.id, item.id);
+        quantitiesByItem[item.id] = {
+          boughtKg: c.boughtKg.toFixed(3),
+          soldKg: c.soldKg.toFixed(3),
+        };
+        unpricedByItem[item.id] = partyUnpriced(partyLots as any, party.id, item.id).toFixed(3);
+      }
+
+      summaries[party.id] = {
+        partyId: party.id,
+        totalPaid: trade.paid.toFixed(2),
+        totalReceived: trade.received.toFixed(2),
+        net: trade.net.toFixed(2),
+        settled: Math.abs(trade.net) < 0.5,
+        quantitiesByItem,
+        unpricedByItem,
+      };
+    }
+
+    res.json({ summaries, items });
+  } catch (err) { next(err); }
+});
+
 ledgerRouter.get("/:partyId", async (req, res, next) => {
   try {
     const party = await prisma.party.findUnique({ where: { id: req.params.partyId } });

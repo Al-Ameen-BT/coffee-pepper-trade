@@ -73,15 +73,20 @@ export interface FundWithData {
 // ─── Lot / Fixing computations ───────────────────────────────────────────────
 
 export function pricedKg(lot: LotWithFixings): number {
-  return lot.fixings.reduce((s, f) => s + Number(f.kg), 0);
+  return lot.fixings.reduce((s, f) => s + (Number(f.kg?.toString() ?? 0) || 0), 0);
 }
 
 export function unpricedKg(lot: LotWithFixings): number {
-  return Math.max(0, Number(lot.totalKg) - pricedKg(lot));
+  const total = Number(lot.totalKg?.toString() ?? 0) || 0;
+  return Math.max(0, total - pricedKg(lot));
 }
 
 export function fixingValue(lot: LotWithFixings): number {
-  return lot.fixings.reduce((s, f) => s + Number(f.kg) * Number(f.rate), 0);
+  return lot.fixings.reduce((s, f) => {
+    const k = Number(f.kg?.toString() ?? 0) || 0;
+    const r = Number(f.rate?.toString() ?? 0) || 0;
+    return s + k * r;
+  }, 0);
 }
 
 // Helper to convert Prisma Decimal to number
@@ -156,7 +161,7 @@ export function partyCommodity(
   let boughtKg = 0;
   let soldKg = 0;
   for (const l of partyLots) {
-    const w = Number(l.totalKg) || 0;
+    const w = Number(l.totalKg?.toString() ?? 0) || 0;
     if (l.kind === "PURCHASE") boughtKg += w;
     else soldKg += w;
   }
