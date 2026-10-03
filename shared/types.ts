@@ -71,6 +71,7 @@ export interface FixingDTO {
   kg: string;
   rate: string;
   notes: string | null;
+  billNo?: string | null;
 }
 
 export interface PaymentDTO {
@@ -220,6 +221,7 @@ export interface PartyBill {
   realizedPurchases: PaymentDTO[];
   realizedSales: PaymentDTO[];
   goodsOnFile: LotDTO[];
+  fixings?: FixingDTO[];
 }
 
 export interface ApiError {

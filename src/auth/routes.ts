@@ -11,7 +11,7 @@ export const authRouter = Router();
 
 const registerSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
+  password: z.string().min(12, "Password must be at least 12 characters long for security"),
   name: z.string().min(1),
 });
 
@@ -24,8 +24,11 @@ function toUserDTO(user: { id: string; email: string; name: string; role: string
   return { id: user.id, email: user.email, name: user.name, role: user.role as UserDTO["role"] };
 }
 
-authRouter.post("/register", async (req, res, next) => {
+authRouter.post("/register", requireAuth, async (req, res, next) => {
   try {
+    if (process.env.NODE_ENV === "production" && req.user?.role !== "ADMIN") {
+      throw new ApiError(403, "Only administrators can register new internal users in production.");
+    }
     const { email, password, name } = registerSchema.parse(req.body);
 
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -55,6 +58,7 @@ authRouter.post("/login", async (req, res, next) => {
       throw new ApiError(401, "Invalid email or password");
     }
 
+    // Note: bcrypt.compare uses timing-safe comparison
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
       throw new ApiError(401, "Invalid email or password");

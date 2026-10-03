@@ -13,10 +13,13 @@ const routes: Record<string, RouteHandler> = {
   "/sales": () => import("./pages/sales.js").then((m) => m.render()),
   "/statements": () => import("./pages/statements.js").then((m) => m.render()),
   "/payments": () => import("./pages/payments.js").then((m) => m.render()),
+  "/other-txn": () => import("./pages/other-txn.js").then((m) => m.render()),
   "/funds": () => import("./pages/funds.js").then((m) => m.render()),
   "/loans": () => import("./pages/loans.js").then((m) => m.render()),
   "/ledger": () => import("./pages/ledger.js").then((m) => m.render()),
   "/bills": () => import("./pages/bills.js").then((m) => m.render()),
+  "/print-bill": () => import("./pages/print-bill.js").then((m) => m.render()),
+  "/print-statement": () => import("./pages/print-statement.js").then((m) => m.render()),
 };
 
 function currentPath(): string {
@@ -41,6 +44,7 @@ const NAV_LINKS = [
   { path: "/sales", label: "Sales" },
   { path: "/statements", label: "Financial Statements" },
   { path: "/payments", label: "Payments" },
+  { path: "/other-txn", label: "Other Expense / Income" },
   { path: "/funds", label: "Cash & Bank" },
   { path: "/loans", label: "Loans & Advances" },
   { path: "/ledger", label: "Personal Ledger" },
@@ -59,8 +63,8 @@ export function renderShell(content: string): void {
         <div class="brand">
           <div class="brand-mark">CP</div>
           <div>
-            <h1>Hill Trade Ledger</h1>
-            <p>Coffee · Black Pepper</p>
+            <h1>Uzhunnungal Traders</h1>
+            <p>Hill Produce Dealer · Coffee · Black Pepper</p>
           </div>
         </div>
         <nav>${nav}</nav>

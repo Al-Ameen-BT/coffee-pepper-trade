@@ -178,6 +178,7 @@ export function fundBalance(
   fund: FundWithData,
   payments: PaymentWithParty[],
   loans: LoanWithParty[],
+  otherTxns: { fundId: string; type: "INCOME" | "EXPENSE"; amount: string | number }[] = []
 ): number {
   let bal = Number(fund.opening.toString()) || 0;
 
@@ -190,6 +191,11 @@ export function fundBalance(
     if (l.fundId !== fund.id) continue;
     if (l.kind === "LOAN_GIVEN" || l.kind === "ADVANCE_GIVEN") bal -= Number(l.amount.toString());
     else bal += Number(l.amount.toString());
+  }
+
+  for (const o of otherTxns) {
+    if (o.fundId !== fund.id) continue;
+    bal += o.type === "INCOME" ? Number(o.amount.toString()) : -Number(o.amount.toString());
   }
 
   return bal;
@@ -213,10 +219,11 @@ export function computeTotals(
   loans: LoanWithParty[],
   lots: LotWithFixings[],
   items: { id: string }[],
+  otherTxns: { fundId: string; type: "INCOME" | "EXPENSE"; amount: string | number }[] = []
 ): TotalsResult {
   const fundBalances = funds.map((f) => ({
     ...f,
-    balance: fundBalance(f, payments, loans),
+    balance: fundBalance(f, payments, loans, otherTxns),
   }));
 
   const cash = fundBalances

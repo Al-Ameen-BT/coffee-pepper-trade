@@ -70,8 +70,42 @@ ledgerRouter.get("/:partyId", async (req, res, next) => {
       prisma.item.findMany(),
     ]);
 
+    const startDate = req.query.startDate as string | undefined;
+    const endDate = req.query.endDate as string | undefined;
+
+    let filteredLots = lots as any[];
+    let filteredPayments = payments as any[];
+    let opBal = 0;
+
+    if (startDate) {
+      const priorPayments = filteredPayments.filter(p => p.date.toISOString().slice(0, 10) < startDate);
+      opBal = partyTrade(priorPayments).net;
+      filteredLots = filteredLots.filter(l => l.date.toISOString().slice(0, 10) >= startDate);
+      filteredPayments = filteredPayments.filter(p => p.date.toISOString().slice(0, 10) >= startDate);
+    }
+    if (endDate) {
+      filteredLots = filteredLots.filter(l => l.date.toISOString().slice(0, 10) <= endDate);
+      filteredPayments = filteredPayments.filter(p => p.date.toISOString().slice(0, 10) <= endDate);
+    }
+
     const itemName = (id: string) => items.find((i) => i.id === id)?.name || id;
-    const rows = ledgerRows(lots as any, payments as any, party.id, itemName);
+    let rows = ledgerRows(filteredLots, filteredPayments, party.id, itemName);
+
+    if (startDate) {
+      rows = rows.map(r => ({
+        ...r,
+        balance: (Number(r.balance) + opBal).toFixed(2)
+      }));
+      rows.unshift({
+        date: startDate,
+        particular: "Opening Balance",
+        debit: opBal > 0 ? opBal.toFixed(2) : "0",
+        credit: opBal < 0 ? (-opBal).toFixed(2) : "0",
+        balance: opBal.toFixed(2),
+        kind: "pay" as any
+      });
+    }
+
     const trade = partyTrade(payments as any);
 
     const unpricedByItem: Record<string, string> = {};

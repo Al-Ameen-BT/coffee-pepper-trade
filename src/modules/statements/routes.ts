@@ -58,16 +58,17 @@ dashboardRouter.use(requireAuth);
 
 dashboardRouter.get("/", async (_req, res, next) => {
   try {
-    const [funds, payments, loans, lots, items, parties] = await Promise.all([
+    const [funds, payments, loans, lots, items, parties, otherTxns] = await Promise.all([
       prisma.fund.findMany(),
       prisma.payment.findMany(),
       prisma.loan.findMany(),
       prisma.lot.findMany({ include: { fixings: true } }),
       prisma.item.findMany(),
       prisma.party.findMany(),
+      prisma.otherTransaction.findMany(),
     ]);
 
-    const t = computeTotals(funds as any, payments as any, loans as any, lots as any, items as any);
+    const t = computeTotals(funds as any, payments as any, loans as any, lots as any, items as any, otherTxns as any);
 
     const partySummaries: PartySummaryDTO[] = parties.map((p) => {
       const pPayments = (payments as any).filter((x: any) => x.partyId === p.id);

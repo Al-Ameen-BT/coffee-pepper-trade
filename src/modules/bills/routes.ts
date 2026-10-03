@@ -13,9 +13,10 @@ billsRouter.get("/:partyId", async (req, res, next) => {
     const party = await prisma.party.findUnique({ where: { id: req.params.partyId } });
     if (!party) throw new ApiError(404, "Party not found");
 
-    const [payments, lots] = await Promise.all([
+    const [payments, lots, fixings] = await Promise.all([
       prisma.payment.findMany({ where: { partyId: party.id }, include: { fund: true }, orderBy: { date: "asc" } }),
       prisma.lot.findMany({ where: { partyId: party.id }, include: { item: true }, orderBy: { date: "asc" } }),
+      prisma.fixing.findMany({ where: { lot: { partyId: party.id } }, orderBy: { date: "desc" } }),
     ]);
 
     const trade = partyTrade(payments as any);
@@ -43,8 +44,71 @@ billsRouter.get("/:partyId", async (req, res, next) => {
         date: l.date.toISOString().slice(0, 10), totalKg: l.totalKg, notes: l.notes, billNo: l.billNo,
         pricedKg: "0", unpricedKg: l.totalKg, fixingValue: "0",
       })),
+      fixings: fixings.map(f => ({
+        id: f.id,
+        lotId: f.lotId,
+        date: f.date.toISOString().slice(0, 10),
+        kg: f.kg.toString(),
+        rate: f.rate.toString(),
+        notes: f.notes,
+        billNo: f.billNo
+      }))
     };
 
     res.json(result);
+  } catch (err) { next(err); }
+});
+
+billsRouter.get("/formal/:fixingId", async (req, res, next) => {
+  try {
+    const fixing = await prisma.fixing.findUnique({
+      where: { id: req.params.fixingId },
+      include: {
+        lot: {
+          include: { party: true, item: true }
+        }
+      }
+    });
+
+    if (!fixing) throw new ApiError(404, "Fixing not found");
+
+    const tcsRate = fixing.tcsRate || 0;
+    const tcsAmount = fixing.tcsAmount || 0;
+    const tdsRate = fixing.tdsRate || 0;
+    const tdsAmount = fixing.tdsAmount || 0;
+    
+    // Determine HSN code
+    const itemNameLower = fixing.lot.item.name.toLowerCase();
+    let hsnCode = "";
+    if (itemNameLower.includes("coffee")) hsnCode = "0901";
+    else if (itemNameLower.includes("pepper")) hsnCode = "0904";
+
+    res.json({
+      company: {
+        name: "UZHUNNUNGAL TRADERS",
+        tagline: "Hill Produce Dealer",
+        gstin: "32APFPJ6004B1ZP",
+        address: "KARIAMBADI P.O., WAYANAD DT., KERALA - 673591",
+        phone: "9447204847",
+        state: "Kerala",
+        stateCode: "32"
+      },
+      billNo: fixing.billNo,
+      date: fixing.date.toISOString().slice(0, 10),
+      kg: fixing.kg,
+      rate: fixing.rate,
+      tcsRate,
+      tcsAmount,
+      tdsRate,
+      tdsAmount,
+      lot: {
+        item: { name: fixing.lot.item.name, hsnCode },
+        party: { 
+          name: fixing.lot.party.name, 
+          address: fixing.lot.party.address || "",
+          place: fixing.lot.party.place || ""
+        }
+      }
+    });
   } catch (err) { next(err); }
 });

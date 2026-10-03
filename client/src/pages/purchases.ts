@@ -144,6 +144,10 @@ export async function render(): Promise<void> {
             <label>Weight (kg) <input required type="number" step="0.001" min="0.001" max="${lot.unpricedKg}" name="kg" value="${lot.unpricedKg}"></label>
             <label>Rate ₹/kg <input required type="number" step="0.01" min="0" name="rate"></label>
           </div>
+          <div class="row">
+            <label>TCS % <input type="number" step="0.01" min="0" name="tcsRate" placeholder="e.g. 0.1"></label>
+            <label>TDS % <input type="number" step="0.01" min="0" name="tdsRate" placeholder="e.g. 1.0"></label>
+          </div>
           <label>Notes <input name="notes" placeholder="Market rate, QC, etc."></label>
           <div class="row">
             <label>Pay/receive now? <select name="settleNow"><option value="">No</option><option value="yes">Yes</option></select></label>
@@ -170,6 +174,8 @@ export async function render(): Promise<void> {
             date: fd.get("date"),
             kg: Number(fd.get("kg")),
             rate: Number(fd.get("rate")),
+            tcsRate: fd.get("tcsRate") ? Number(fd.get("tcsRate")) : undefined,
+            tdsRate: fd.get("tdsRate") ? Number(fd.get("tdsRate")) : undefined,
             notes: fd.get("notes") || undefined,
             settleNow: fd.get("settleNow") === "yes",
             fundId: fd.get("fundId") || undefined,

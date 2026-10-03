@@ -7,7 +7,7 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${ROOT_DIR}"
 
 echo "=========================================="
-echo " Deploying Hill Trade Ledger (MySQL)      "
+echo " Deploying Uzhunnungal Traders (MySQL)      "
 echo " Working directory: ${ROOT_DIR}           "
 echo "=========================================="
 

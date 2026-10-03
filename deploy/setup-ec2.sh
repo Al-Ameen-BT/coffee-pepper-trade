@@ -5,7 +5,7 @@
 set -euo pipefail
 
 echo "=========================================="
-echo " Starting EC2 Provisioning for Hill Trade "
+echo " Starting EC2 Provisioning for Uzhunnungal Traders "
 echo "=========================================="
 
 # 1. Setup 2GB Swap (CRITICAL for 1GB RAM instances to prevent OOM)

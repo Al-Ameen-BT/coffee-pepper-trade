@@ -4,6 +4,7 @@ import { prisma } from "../../db.js";
 import { requireAuth } from "../../auth/middleware.js";
 import { ApiError } from "../../lib/errorHandler.js";
 import { pricedKg, unpricedKg, fixingValue } from "../../lib/compute.js";
+import { getNextBillNo } from "../../lib/billSequence.js";
 import type { LotDTO } from "../../../shared/types.js";
 
 export const lotsRouter = Router();
@@ -154,6 +155,8 @@ const fixingSchema = z.object({
   date: z.string(),
   kg: z.number().positive(),
   rate: z.number().positive(),
+  tcsRate: z.number().nonnegative().optional(),
+  tdsRate: z.number().nonnegative().optional(),
   notes: z.string().optional(),
   settleNow: z.boolean().optional(),
   fundId: z.string().optional(),
@@ -181,24 +184,42 @@ lotsRouter.post("/:id/fixings", async (req, res, next) => {
       throw new ApiError(400, `Cannot price more than pending weight (${pending.toFixed(3)} kg)`);
     }
 
+    const tcsAmount = data.tcsRate ? (data.kg * data.rate * data.tcsRate) / 100 : 0;
+    const tdsAmount = data.tdsRate ? (data.kg * data.rate * data.tdsRate) / 100 : 0;
+
+    const prefix = lot.kind === "PURCHASE" ? "PUR" : "SAL";
+    const billNo = await getNextBillNo(prefix);
+
     const fixing = await prisma.$transaction(async (tx) => {
       const created = await tx.fixing.create({
-        data: { lotId: lot.id, date: new Date(data.date), kg: data.kg, rate: data.rate, notes: data.notes || null },
+        data: { 
+          lotId: lot.id, 
+          date: new Date(data.date), 
+          kg: data.kg, 
+          rate: data.rate, 
+          tcsRate: data.tcsRate || null,
+          tcsAmount: tcsAmount || null,
+          tdsRate: data.tdsRate || null,
+          tdsAmount: tdsAmount || null,
+          billNo,
+          notes: data.notes || null 
+        },
       });
 
       if (data.settleNow && data.fundId) {
+        const payBillNo = await getNextBillNo(lot.kind === "PURCHASE" ? "PAY" : "REC");
         await tx.payment.create({
           data: {
             partyId: lot.partyId,
             date: new Date(data.date),
             amount: data.kg * data.rate,
             direction: lot.kind === "PURCHASE" ? "PAY" : "RECEIVE",
-            tradeType: lot.kind,
+            tradeType: lot.kind as "PURCHASE" | "SALE",
             fundId: data.fundId,
-            billNo: `FIX-${Date.now()}`,
+            billNo: payBillNo,
             priceKg: data.kg,
             rate: data.rate,
-            notes: `Against ${lot.billNo} price fix ${data.kg} kg`,
+            notes: `Against ${billNo} price fix ${data.kg} kg`,
           },
         });
       }

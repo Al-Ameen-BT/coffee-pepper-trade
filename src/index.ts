@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import { config } from "./config.js";
 import { wafMiddleware, apiRateLimiter, authRateLimiter } from "./middleware/waf.js";
 import { authRouter } from "./auth/routes.js";
@@ -15,8 +16,10 @@ import { loansRouter } from "./modules/loans/routes.js";
 import { ledgerRouter } from "./modules/ledger/routes.js";
 import { statementsRouter } from "./modules/statements/routes.js";
 import { billsRouter } from "./modules/bills/routes.js";
+import { otherTxnRouter } from "./modules/other-transactions/routes.js";
 import { dashboardRouter } from "./modules/statements/routes.js";
 import { errorHandler } from "./lib/errorHandler.js";
+import { integrityMiddleware } from "./middleware/integrity.js";
 import { notFound } from "./lib/notFound.js";
 
 const app = express();
@@ -24,7 +27,44 @@ const app = express();
 // Trust Nginx reverse proxy headers for real client IP rate limiting
 app.set("trust proxy", 1);
 
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        connectSrc: ["'self'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+    },
+    xContentTypeOptions: true,
+    xFrameOptions: { action: "deny" },
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  })
+);
+
+app.use((req, res, next) => {
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  next();
+});
+
+app.use((req, res, next) => {
+  if (config.FORCE_HTTPS && req.headers["x-forwarded-proto"] !== "https") {
+    return res.redirect(`https://${req.hostname}${req.url}`);
+  }
+  if (req.path.startsWith("/api")) {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
+  }
+  res.setHeader("X-Request-ID", crypto.randomUUID());
+  next();
+});
 
 const allowedOrigins = [
   config.CLIENT_URL,
@@ -38,24 +78,29 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (
-        allowedOrigins.includes(origin) ||
-        (config.NODE_ENV !== "production" && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin))
-      ) {
-        return callback(null, true);
-      }
-      // In production behind Nginx reverse proxy, allow the public IP or domain
+      
       if (config.NODE_ENV === "production") {
-        return callback(null, true);
+        if (origin === config.CLIENT_URL) {
+          return callback(null, true);
+        }
+        return callback(new Error("Not allowed by CORS"));
+      } else {
+        if (
+          allowedOrigins.includes(origin) ||
+          /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+        ) {
+          return callback(null, true);
+        }
+        return callback(new Error("Not allowed by CORS"));
       }
-      callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
-  }),
+  })
 );
 
 // Payload size limit to prevent memory exhaustion / DoS attacks
 app.use(express.json({ limit: "1mb" }));
+app.use(integrityMiddleware);
 
 // ─── Web Application Firewall (WAF) & Bot Defense ────────────────────────────
 app.use(wafMiddleware);
@@ -73,6 +118,7 @@ app.use("/api/v1/loans", loansRouter);
 app.use("/api/v1/ledger", ledgerRouter);
 app.use("/api/v1/reports", statementsRouter);
 app.use("/api/v1/bills", billsRouter);
+app.use("/api/v1/other-txn", otherTxnRouter);
 app.use("/api/v1/dashboard", dashboardRouter);
 
 app.get("/api/health", (_req, res) => {
@@ -116,6 +162,6 @@ app.use(notFound);
 app.use(errorHandler);
 
 app.listen(config.PORT, () => {
-  console.log(`Hill Trade Ledger API running on port ${config.PORT}`);
+  console.log(`Uzhunnungal Traders API running on port ${config.PORT}`);
   console.log(`Environment: ${config.NODE_ENV}`);
 });

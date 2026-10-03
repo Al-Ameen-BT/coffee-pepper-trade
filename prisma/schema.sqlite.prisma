@@ -61,6 +61,7 @@ model Fund {
   payments      Payment[]
   loans         Loan[]
   repayments    LoanRepayment[]
+  otherTransactions OtherTransaction[]
 }
 
 model Lot {
@@ -95,6 +96,11 @@ model Fixing {
   date      DateTime
   kg        Float
   rate      Float
+  tcsRate   Float?
+  tcsAmount Float?
+  tdsRate   Float?
+  tdsAmount Float?
+  billNo    String?  @unique
   notes     String?
   createdAt DateTime @default(now())
 
@@ -227,4 +233,49 @@ enum LoanStatus {
   ACTIVE
   PARTIALLY_SETTLED
   SETTLED
+}
+
+model BillSequence {
+  id            String @id @default(cuid())
+  prefix        String
+  financialYear String
+  lastNumber    Int    @default(0)
+  
+  @@unique([prefix, financialYear])
+}
+
+model OtherTransaction {
+  id          String         @id @default(cuid())
+  type        OtherTxnType
+  category    String
+  amount      Decimal
+  fundId      String
+  fund        Fund           @relation(fields: [fundId], references: [id])
+  date        DateTime
+  billNo      String?
+  description String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  
+  @@index([fundId])
+  @@index([date])
+}
+
+model CompanyInfo {
+  id          String  @id @default(cuid())
+  name        String
+  tagline     String
+  gstin       String
+  address     String
+  state       String
+  stateCode   String
+  phone       String
+  bankName    String?
+  bankAccount String?
+  bankIfsc    String?
+}
+
+enum OtherTxnType {
+  EXPENSE
+  INCOME
 }

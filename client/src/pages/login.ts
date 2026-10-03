@@ -5,7 +5,7 @@ export function renderLogin(): void {
   document.getElementById("app")!.innerHTML = `
     <div class="login-page">
       <div class="login-box">
-        <h1>Hill Trade Ledger</h1>
+        <h1>Uzhunnungal Traders</h1>
         <p>Coffee · Black Pepper trading management</p>
         <div id="login-error" class="alert error" style="display:none;margin-bottom:16px;padding:10px 14px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:8px;font-size:13px;line-height:1.4;"></div>
         <form id="login-form" class="stack">

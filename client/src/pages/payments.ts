@@ -42,7 +42,6 @@ export async function render(): Promise<void> {
       <form class="stack" id="payment-form">
         <div class="row">
           <label>Date <input required type="date" name="date" value="${today()}"></label>
-          <label>Bill number <input required name="billNo" placeholder="Mandatory bill / voucher no."></label>
         </div>
         <label>Gross Amount ₹ <input required type="number" step="0.01" min="0.01" name="grossAmount" id="pay-gross" placeholder="Auto-fills from kg × rate"></label>
         <div id="advance-box" style="display:none;background:var(--card-bg, #fff);border:1px dashed var(--gold);padding:12px;border-radius:6px;margin:6px 0">
@@ -211,7 +210,6 @@ export async function render(): Promise<void> {
         grossAmount: grossVal,
         advanceDeducted: totalDeducted,
         advanceDeductions: deductions.length > 0 ? deductions : undefined,
-        billNo: fd.get("billNo"),
         tradeType: fd.get("tradeType"),
         fundId: fd.get("fundId"),
         itemId: fd.get("itemId") || undefined,

@@ -34,12 +34,13 @@ function toDTO(f: {
 
 fundsRouter.get("/", async (_req, res, next) => {
   try {
-    const [funds, payments, loans] = await Promise.all([
+    const [funds, payments, loans, otherTxns] = await Promise.all([
       prisma.fund.findMany({ orderBy: { name: "asc" } }),
       prisma.payment.findMany(),
       prisma.loan.findMany(),
+      prisma.otherTransaction.findMany(),
     ]);
-    res.json(funds.map((f) => toDTO(f, fundBalance(f as any, payments as any, loans as any))));
+    res.json(funds.map((f) => toDTO(f, fundBalance(f as any, payments as any, loans as any, otherTxns as any))));
   } catch (err) { next(err); }
 });
 
@@ -56,6 +57,19 @@ fundsRouter.post("/", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+fundsRouter.put("/:id/opening", async (req, res, next) => {
+  try {
+    const { amount } = z.object({ amount: z.number() }).parse(req.body);
+    const fund = await prisma.fund.update({
+      where: { id: req.params.id },
+      data: { opening: amount },
+    });
+    // We don't necessarily have all transactions to re-compute full balance easily here without a large query,
+    // so we return the updated opening. The frontend will likely refetch the list.
+    res.json({ id: fund.id, opening: fund.opening.toString() });
+  } catch (err) { next(err); }
+});
+
 // Secure endpoint to reveal full decrypted bank account number to authorized authenticated users
 fundsRouter.get("/:id/reveal-account", async (req, res, next) => {
   try {
@@ -68,9 +82,10 @@ fundsRouter.get("/:id/reveal-account", async (req, res, next) => {
 
 fundsRouter.get("/:id/movements", async (req, res, next) => {
   try {
-    const [payments, loans] = await Promise.all([
+    const [payments, loans, otherTxns] = await Promise.all([
       prisma.payment.findMany({ where: { fundId: req.params.id }, include: { party: true }, orderBy: { date: "desc" } }),
       prisma.loan.findMany({ where: { fundId: req.params.id }, include: { party: true }, orderBy: { date: "desc" } }),
+      prisma.otherTransaction.findMany({ where: { fundId: req.params.id }, orderBy: { date: "desc" } }),
     ]);
 
     const rows = [
@@ -83,6 +98,11 @@ fundsRouter.get("/:id/movements", async (req, res, next) => {
         date: l.date, type: "loan" as const, direction: l.kind === "LOAN_GIVEN" || l.kind === "ADVANCE_GIVEN" ? "PAY" as const : "RECEIVE" as const,
         particular: `${l.kind.replaceAll("_", " ")} · ${l.party.name}`,
         amount: Number(l.amount),
+      })),
+      ...otherTxns.map((o) => ({
+        date: o.date, type: "other" as const, direction: o.type === "EXPENSE" ? "PAY" as const : "RECEIVE" as const,
+        particular: `${o.type === "EXPENSE" ? "Expense" : "Income"} - ${o.category}${o.description ? ` (${o.description})` : ""}`,
+        amount: Number(o.amount),
       })),
     ].sort((a, b) => b.date.getTime() - a.date.getTime());
 

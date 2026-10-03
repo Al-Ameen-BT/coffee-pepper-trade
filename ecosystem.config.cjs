@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: "hill-trade-ledger",
+      name: "uzhunnungal-traders",
       script: "dist/src/index.js",
       instances: 1,
       autorestart: true,

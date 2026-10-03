@@ -18,9 +18,10 @@ export async function render(): Promise<void> {
 
   const due = bill.settled ? "Settled" : bill.outstanding.startsWith("-") ? `To pay ${money(bill.outstanding)}` : `To receive ${money(bill.outstanding)}`;
 
-  const rowPay = (list: any[]) => list.length
+  const rowPay = (list: any[], isDebit: boolean) => list.length
     ? list.map((x) => `
       <tr>
+        <td class="no-print" style="width:30px;"><input type="checkbox" class="stmt-cb" data-json="${esc(JSON.stringify({...x, isDebit}))}"></td>
         <td>${x.date}</td>
         <td>${esc(x.billNo || "—")}</td>
         <td>${x.itemId ? esc(x.itemId) : "—"}</td>
@@ -31,7 +32,7 @@ export async function render(): Promise<void> {
         <td>${esc(x.notes || "")}</td>
       </tr>
     `).join("")
-    : `<tr><td colspan="8" class="empty">None</td></tr>`;
+    : `<tr><td colspan="9" class="empty">None</td></tr>`;
 
   renderShell(`
     <div class="topbar no-print">
@@ -45,13 +46,14 @@ export async function render(): Promise<void> {
             ${parties.map((p) => `<option value="${p.id}" ${p.id === selected.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}
           </select>
         </label>
-        <button class="btn gold" type="button" id="print-pdf">Print / Save PDF</button>
+        <button class="btn gold" type="button" id="print-selected">Print Selected Statement</button>
+        <button class="btn secondary" type="button" id="print-pdf">Print / Save PDF</button>
       </div>
     </div>
     <div class="card" id="bill">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--espresso);padding-bottom:12px">
         <div>
-          <div style="font-family:Fraunces,serif;font-size:28px">Hill Trade Ledger</div>
+          <div style="font-family:Fraunces,serif;font-size:28px">Uzhunnungal Traders</div>
           <div style="color:var(--muted)">Party statement · Cash accounting (realized on payment)</div>
         </div>
         <div style="text-align:right">
@@ -63,9 +65,9 @@ export async function render(): Promise<void> {
       </div>
       <p style="margin:16px 0 8px"><strong>Outstanding:</strong> ${due} · Outflow ${money(bill.totalPaid)} · Inflow ${money(bill.totalReceived)}</p>
       <h3>Realized purchases (items bought — via payment)</h3>
-      <table><thead><tr><th>Date</th><th>Bill No.</th><th>Item</th><th class="num">Kg</th><th class="num">Rate</th><th class="num">Amount</th><th>Account</th><th>Notes</th></tr></thead><tbody>${rowPay(bill.realizedPurchases)}</tbody></table>
+      <table><thead><tr><th class="no-print"></th><th>Date</th><th>Bill No.</th><th>Item</th><th class="num">Kg</th><th class="num">Rate</th><th class="num">Amount</th><th>Account</th><th>Notes</th></tr></thead><tbody>${rowPay(bill.realizedPurchases, true)}</tbody></table>
       <h3 style="margin-top:18px">Realized sales (items sold — via payment)</h3>
-      <table><thead><tr><th>Date</th><th>Bill No.</th><th>Item</th><th class="num">Kg</th><th class="num">Rate</th><th class="num">Amount</th><th>Account</th><th>Notes</th></tr></thead><tbody>${rowPay(bill.realizedSales)}</tbody></table>
+      <table><thead><tr><th class="no-print"></th><th>Date</th><th>Bill No.</th><th>Item</th><th class="num">Kg</th><th class="num">Rate</th><th class="num">Amount</th><th>Account</th><th>Notes</th></tr></thead><tbody>${rowPay(bill.realizedSales, false)}</tbody></table>
       <h3 style="margin-top:18px">Goods on file (not realized until payment)</h3>
       <table><thead><tr><th>Date</th><th>Type</th><th>Item</th><th class="num">Kg received / delivered</th><th>Notes</th></tr></thead><tbody>
         ${bill.goodsOnFile.length ? bill.goodsOnFile.map((l) => `
@@ -78,11 +80,42 @@ export async function render(): Promise<void> {
           </tr>
         `).join("") : `<tr><td colspan="5" class="empty">No goods lots</td></tr>`}
       </tbody></table>
+      <h3 style="margin-top:18px">Price Fixings</h3>
+      <table><thead><tr><th>Date</th><th>Bill No.</th><th class="num">Kg</th><th class="num">Rate</th><th>Notes</th><th>Action</th></tr></thead><tbody>
+        ${(bill.fixings || []).length ? (bill.fixings || []).map((f) => `
+          <tr>
+            <td>${f.date}</td>
+            <td>${esc(f.billNo || "—")}</td>
+            <td class="num">${kg(f.kg)}</td>
+            <td class="num">${money(f.rate)}</td>
+            <td>${esc(f.notes || "")}</td>
+            <td><a href="/print-bill?fixingId=${f.id}" class="btn secondary" style="padding:2px 8px;font-size:11px;" target="_blank">Print Formal Bill</a></td>
+          </tr>
+        `).join("") : `<tr><td colspan="6" class="empty">No price fixings</td></tr>`}
+      </tbody></table>
     </div>
   `);
 
   document.getElementById("bill-party")!.addEventListener("change", (e) => {
     window.location.href = `/bills?party=${(e.target as HTMLSelectElement).value}`;
+  });
+
+  document.getElementById("print-selected")!.addEventListener("click", () => {
+    const selectedRows = Array.from(document.querySelectorAll('.stmt-cb:checked')).map(cb => {
+      const data = (cb as HTMLElement).dataset.json;
+      return data ? JSON.parse(data) : null;
+    }).filter(Boolean);
+
+    if (selectedRows.length === 0) {
+      alert("Please select at least one transaction to print.");
+      return;
+    }
+
+    sessionStorage.setItem("print-statement-data", JSON.stringify({
+      party: bill.party,
+      transactions: selectedRows
+    }));
+    window.open("/print-statement", "_blank");
   });
 
   document.getElementById("print-pdf")!.addEventListener("click", () => {

@@ -5,9 +5,11 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   PORT: z.coerce.number().default(3000),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  JWT_SECRET: z.string().min(16),
+  JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default("7d"),
-  ENCRYPTION_KEY: z.string().min(16).default("hill-trade-bank-key-32-chars-long!"),
+  ENCRYPTION_KEY: z.string().min(32),
+  COOKIE_SECRET: z.string().min(16).default("dev-cookie-secret-change"),
+  FORCE_HTTPS: z.coerce.boolean().default(false),
   CLIENT_URL: z.string().default("http://localhost:5173"),
 });
 

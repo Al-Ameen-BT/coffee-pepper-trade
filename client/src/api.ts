@@ -3,14 +3,22 @@
 const TOKEN_KEY = "cpt_token";
 
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  try {
+    const stored = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
+    return stored ? atob(stored) : null;
+  } catch {
+    return null;
+  }
 }
 
 export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
+  const encoded = btoa(token);
+  sessionStorage.setItem(TOKEN_KEY, encoded);
+  localStorage.setItem(TOKEN_KEY, encoded);
 }
 
 export function clearToken(): void {
+  sessionStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(TOKEN_KEY);
 }
 
@@ -26,13 +34,27 @@ export class ApiError extends Error {
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const token = getToken();
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "X-Request-Timestamp": new Date().toISOString(),
+    "X-Request-ID": crypto.randomUUID(),
+  };
   if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const bodyStr = body ? JSON.stringify(body) : undefined;
+
+  // Compute body integrity hash for tamper detection
+  if (bodyStr) {
+    const msgBuffer = new TextEncoder().encode(bodyStr);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    headers["X-Body-Integrity"] = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
 
   const res = await fetch(`/api/v1${path}`, {
     method,
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    body: bodyStr,
   });
 
   if (res.status === 401) {

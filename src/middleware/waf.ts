@@ -120,6 +120,7 @@ export function wafMiddleware(req: Request, res: Response, next: NextFunction): 
     return;
   }
 
+  res.setHeader("X-Content-Type-Options", "nosniff");
   next();
 }
 
@@ -197,17 +198,17 @@ export function createRateLimiter(options: RateLimitOptions) {
  * Max 10 requests per 5 minutes per IP to stop credential-stuffing and brute-force bots.
  */
 export const authRateLimiter = createRateLimiter({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  maxRequests: 10,
-  message: "Too many authentication attempts. Please wait 5 minutes before trying again.",
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxRequests: 5,
+  message: "Too many authentication attempts. Please wait 15 minutes before trying again.",
 });
 
 /**
  * Standard rate limiter for all API endpoints.
- * Max 150 requests per minute per IP to block scraper bots and API flooding.
+ * Max 100 requests per minute per IP to block scraper bots and API flooding.
  */
 export const apiRateLimiter = createRateLimiter({
   windowMs: 60 * 1000, // 1 minute
-  maxRequests: 150,
+  maxRequests: 100,
   message: "Rate limit exceeded. Too many requests from this IP.",
 });

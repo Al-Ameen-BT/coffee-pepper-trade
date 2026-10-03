@@ -4,6 +4,7 @@ import { prisma } from "../../db.js";
 import { requireAuth } from "../../auth/middleware.js";
 import { ApiError } from "../../lib/errorHandler.js";
 import { applyPricingQty, unpricedKg } from "../../lib/compute.js";
+import { getNextBillNo } from "../../lib/billSequence.js";
 import type { PaymentDTO } from "../../../shared/types.js";
 
 export const paymentsRouter = Router();
@@ -15,7 +16,7 @@ const paymentSchema = z.object({
   amount: z.number().positive(),
   advanceDeducted: z.number().nonnegative().optional(),
   grossAmount: z.number().positive().optional(),
-  billNo: z.string().min(1),
+  billNo: z.string().optional(),
   direction: z.enum(["PAY", "RECEIVE"]),
   tradeType: z.enum(["PURCHASE", "SALE"]),
   fundId: z.string().min(1),
@@ -86,6 +87,9 @@ paymentsRouter.post("/", async (req, res, next) => {
         throw new ApiError(400, `Cannot price ${data.priceKg} kg. Only ${totalPending.toFixed(3)} kg pending.`);
       }
     }
+    
+    const direction = data.direction || (data.tradeType === "PURCHASE" ? "PAY" : "RECEIVE");
+    const billNo = data.billNo || await getNextBillNo(direction === "PAY" ? "PAY" : "REC");
 
     const payment = await prisma.$transaction(async (tx) => {
       // Validate advance deductions if provided
@@ -117,7 +121,13 @@ paymentsRouter.post("/", async (req, res, next) => {
         });
         for (const alloc of result.allocated) {
           await tx.fixing.create({
-            data: { lotId: alloc.lotId, date: new Date(data.date), kg: alloc.kg, rate: data.rate!, notes: `Priced with payment ${data.billNo}` },
+            data: { 
+              lotId: alloc.lotId, 
+              date: new Date(data.date), 
+              kg: alloc.kg, 
+              rate: data.rate!, 
+              notes: `Priced with payment ${billNo}` 
+            },
           });
         }
         if (result.leftover > 0.0001) {
@@ -131,8 +141,8 @@ paymentsRouter.post("/", async (req, res, next) => {
           partyId: data.partyId, date: new Date(data.date), amount: data.amount,
           advanceDeducted: totalAdvanceDeducted || (data.advanceDeducted ?? 0),
           grossAmount: gross,
-          billNo: data.billNo,
-          direction: data.direction || (data.tradeType === "PURCHASE" ? "PAY" : "RECEIVE"),
+          billNo: billNo,
+          direction: direction,
           tradeType: data.tradeType,
           fundId: data.fundId, itemId: data.itemId || null,
           priceKg: data.priceKg || null, rate: data.rate || null,
@@ -155,7 +165,7 @@ paymentsRouter.post("/", async (req, res, next) => {
                 loanId: loan.id,
                 amount: item.amount,
                 date: new Date(data.date),
-                notes: `Adjusted against payment bill ${data.billNo}`,
+                notes: `Adjusted against payment bill ${billNo}`,
               },
             });
             await tx.loan.update({

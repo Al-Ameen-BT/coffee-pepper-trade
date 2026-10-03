@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
 import { Prisma } from "@prisma/client";
+import { config } from "../config.js";
 
 export class ApiError extends Error {
   constructor(
@@ -15,14 +16,17 @@ export class ApiError extends Error {
 
 export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction) {
   if (err instanceof ApiError) {
-    res.status(err.statusCode).json({ error: err.message, details: err.details });
+    res.status(err.statusCode).json({ 
+      error: err.message, 
+      details: config.NODE_ENV === "production" ? undefined : err.details 
+    });
     return;
   }
 
   if (err instanceof ZodError) {
     res.status(400).json({
       error: "Validation failed",
-      details: err.flatten().fieldErrors,
+      details: config.NODE_ENV === "production" ? undefined : err.flatten().fieldErrors,
     });
     return;
   }
@@ -39,5 +43,8 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
   }
 
   console.error("Unhandled error:", err);
-  res.status(500).json({ error: "Internal server error" });
+  res.status(500).json({ 
+    error: "Internal server error",
+    details: config.NODE_ENV === "production" ? undefined : (err instanceof Error ? err.message : String(err))
+  });
 }

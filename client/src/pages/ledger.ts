@@ -27,7 +27,13 @@ export async function render(): Promise<void> {
   }
 
   const selected = parties.find((p) => p.id === partyId) || parties[0];
-  const ledger = await api.get<PartyLedger>(`/ledger/${selected.id}`);
+  const startDate = params.get("startDate") || "";
+  const endDate = params.get("endDate") || "";
+  const queryParams = new URLSearchParams();
+  if (startDate) queryParams.set("startDate", startDate);
+  if (endDate) queryParams.set("endDate", endDate);
+  const qStr = queryParams.toString() ? `?${queryParams.toString()}` : "";
+  const ledger = await api.get<PartyLedger>(`/ledger/${selected.id}${qStr}`);
 
   const partyRows = parties.map((p) => {
     const s = allSummary.summaries[p.id];
@@ -54,12 +60,12 @@ export async function render(): Promise<void> {
       <tr>
         <td>${r.date}</td>
         <td>${esc(r.particular)}</td>
-        <td class="num">${r.debit ? money(r.debit) : ""}</td>
-        <td class="num">${r.credit ? money(r.credit) : ""}</td>
+        <td class="num">${r.debit && r.debit !== "0" ? money(r.debit) : ""}</td>
+        <td class="num">${r.credit && r.credit !== "0" ? money(r.credit) : ""}</td>
         <td class="num">${Number(r.balance) >= 0 ? money(r.balance) + " Dr" : money(-r.balance) + " Cr"}</td>
       </tr>
     `).join("")
-    : `<tr><td colspan="5" class="empty">No transactions yet for this party.</td></tr>`;
+    : `<tr><td colspan="5" class="empty">No transactions yet for this period.</td></tr>`;
 
   const dueText = ledger.settled
     ? "Settled — nothing outstanding"
@@ -117,7 +123,17 @@ export async function render(): Promise<void> {
       </table>
     </div>
     <div class="card">
-      <h3>Account statement</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3>Account statement</h3>
+        <form class="date-filter" style="display:flex;gap:8px;align-items:center;">
+          <input type="hidden" name="party" value="${esc(selected.id)}">
+          <input type="date" name="startDate" value="${esc(startDate)}">
+          <span>to</span>
+          <input type="date" name="endDate" value="${esc(endDate)}">
+          <button type="submit" class="btn">Filter</button>
+          <button type="button" class="btn" id="export-csv">Export to CSV</button>
+        </form>
+      </div>
       <table>
         <thead><tr><th>Date</th><th>Particulars</th><th class="num">Debit</th><th class="num">Credit</th><th class="num">Running balance</th></tr></thead>
         <tbody>
@@ -127,4 +143,38 @@ export async function render(): Promise<void> {
       </table>
     </div>
   `);
+
+  setTimeout(() => {
+    document.querySelector(".date-filter")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target as HTMLFormElement);
+      const s = fd.get("startDate") as string;
+      const en = fd.get("endDate") as string;
+      const url = new URL(window.location.href);
+      if (s) url.searchParams.set("startDate", s);
+      else url.searchParams.delete("startDate");
+      if (en) url.searchParams.set("endDate", en);
+      else url.searchParams.delete("endDate");
+      window.history.pushState({}, "", url);
+      window.dispatchEvent(new Event("popstate"));
+    });
+
+    document.getElementById("export-csv")?.addEventListener("click", () => {
+      let csv = "Date,Particulars,Debit,Credit,Running Balance\\n";
+      for (const r of ledger.rows) {
+        const balNum = Number(r.balance);
+        const balStr = balNum >= 0 ? r.balance + " Dr" : (-balNum).toFixed(2) + " Cr";
+        csv += `"${r.date}","${r.particular.replace(/"/g, '""')}","${r.debit !== "0" ? r.debit : ""}","${r.credit !== "0" ? r.credit : ""}","${balStr}"\n`;
+      }
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `ledger_${selected.name}_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  }, 0);
 }
