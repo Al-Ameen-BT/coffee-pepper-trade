@@ -208,19 +208,46 @@ async function main() {
   });
   console.log("Created lots");
 
-  // Create fixings
+  // Create fixings — each is a trade bill, so each gets a real PUR/SAL number
+  // from the same FY counter the app uses. Numbers here must match the format
+  // the running application produces, otherwise seeded bills look unnumbered.
+  const fixCurrentFY = (() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    return month >= 3 ? `${year % 100}-${(year + 1) % 100}` : `${(year - 1) % 100}-${year % 100}`;
+  })();
+
+  let purSeq = 0;
+  let salSeq = 0;
+  const purNo = () => `PUR/${fixCurrentFY}/${String(++purSeq).padStart(4, "0")}`;
+  const salNo = () => `SAL/${fixCurrentFY}/${String(++salSeq).padStart(4, "0")}`;
+
   await prisma.fixing.createMany({
     data: [
-      { lotId: p1.id, date: new Date("2026-09-14"), kg: 500, rate: 268, notes: "1st tranche" },
-      { lotId: p1.id, date: new Date("2026-09-21"), kg: 400, rate: 274, notes: "2nd tranche" },
-      { lotId: p2.id, date: new Date("2026-09-19"), kg: 200, rate: 642, notes: "Partial" },
-      { lotId: s1.id, date: new Date("2026-09-20"), kg: 800, rate: 312, notes: "Full lot" },
-      { lotId: p3.id, date: new Date("2026-09-26"), kg: 300, rate: 270, notes: "First fix" },
-      { lotId: s3.id, date: new Date("2026-09-27"), kg: 500, rate: 315, notes: "Export rate" },
-      { lotId: p4.id, date: new Date("2026-09-28"), kg: 150, rate: 645, notes: "Partial" },
+      { lotId: p1.id, date: new Date("2026-09-14"), kg: 500, rate: 268, billNo: purNo(), notes: "1st tranche" },
+      { lotId: p1.id, date: new Date("2026-09-21"), kg: 400, rate: 274, billNo: purNo(), notes: "2nd tranche" },
+      { lotId: p2.id, date: new Date("2026-09-19"), kg: 200, rate: 642, billNo: purNo(), notes: "Partial" },
+      { lotId: s1.id, date: new Date("2026-09-20"), kg: 800, rate: 312, billNo: salNo(), notes: "Full lot" },
+      { lotId: p3.id, date: new Date("2026-09-26"), kg: 300, rate: 270, billNo: purNo(), notes: "First fix" },
+      { lotId: s3.id, date: new Date("2026-09-27"), kg: 500, rate: 315, billNo: salNo(), notes: "Export rate" },
+      { lotId: p4.id, date: new Date("2026-09-28"), kg: 150, rate: 645, billNo: purNo(), notes: "Partial" },
     ],
   });
-  console.log("Created fixings");
+
+  // Advance the live counters so app-generated numbers never reuse seeded ones
+  for (const [prefix, last] of [
+    ["PUR", purSeq],
+    ["SAL", salSeq],
+  ] as const) {
+    await prisma.billSequence.upsert({
+      where: { prefix_financialYear: { prefix, financialYear: fixCurrentFY } },
+      update: { lastNumber: last },
+      create: { prefix, financialYear: fixCurrentFY, lastNumber: last },
+    });
+  }
+
+  console.log(`Created fixings (numbered ${purSeq} PUR, ${salSeq} SAL for ${fixCurrentFY})`);
 
   // Create payments
   await prisma.payment.createMany({
@@ -228,31 +255,43 @@ async function main() {
       {
         partyId: ramesh.id, date: new Date("2026-09-15"), amount: 80000,
         direction: "PAY", tradeType: "PURCHASE", fundId: cash.id,
-        billNo: "PAY-001", notes: "Part payment P-001",
+        billNo: `PAY/${fixCurrentFY}/0001`, notes: "Part payment P-001",
       },
       {
         partyId: kodagu.id, date: new Date("2026-09-23"), amount: 150000,
         direction: "RECEIVE", tradeType: "SALE", fundId: current.id,
-        billNo: "PAY-002", notes: "Part receipt S-001",
+        billNo: `REC/${fixCurrentFY}/0001`, notes: "Part receipt S-001",
       },
       {
         partyId: arun.id, date: new Date("2026-09-26"), amount: 50000,
         direction: "PAY", tradeType: "PURCHASE", fundId: cash.id,
-        billNo: "PAY-003", notes: "Advance for P-003",
+        billNo: `PAY/${fixCurrentFY}/0002`, notes: "Advance for P-003",
       },
       {
         partyId: meena.id, date: new Date("2026-09-27"), amount: 120000,
         direction: "RECEIVE", tradeType: "SALE", fundId: current.id,
-        billNo: "PAY-004", notes: "Full receipt S-003",
+        billNo: `REC/${fixCurrentFY}/0002`, notes: "Full receipt S-003",
       },
       {
         partyId: soma.id, date: new Date("2026-09-28"), amount: 30000,
         direction: "PAY", tradeType: "PURCHASE", fundId: cash.id,
-        billNo: "PAY-005", notes: "Part payment P-004",
+        billNo: `PAY/${fixCurrentFY}/0003`, notes: "Part payment P-004",
       },
     ],
   });
-  console.log("Created payments");
+
+  // Advance PAY/REC counters past the seeded numbers
+  for (const [prefix, last] of [
+    ["PAY", 3],
+    ["REC", 2],
+  ] as const) {
+    await prisma.billSequence.upsert({
+      where: { prefix_financialYear: { prefix, financialYear: fixCurrentFY } },
+      update: { lastNumber: last },
+      create: { prefix, financialYear: fixCurrentFY, lastNumber: last },
+    });
+  }
+  console.log("Created payments (numbered PAY/REC)");
 
   // Create loans
   await prisma.loan.createMany({

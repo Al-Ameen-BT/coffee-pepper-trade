@@ -61,6 +61,11 @@ export async function render(): Promise<void> {
       </div>
 
       <table class="print-table">
+        <colgroup>
+          <col class="c-sno" /><col class="c-desc" /><col class="c-hsn" /><col class="c-lot" />
+          <col class="c-num" /><col class="c-num" /><col class="c-num" /><col class="c-num" />
+          <col class="c-num" /><col class="c-num" />
+        </colgroup>
         <thead>
           <tr>
             <th scope="col">S.No</th>

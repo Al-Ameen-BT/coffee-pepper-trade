@@ -75,10 +75,12 @@ export async function createInvoiceFromFixings(
   const tdsAmount = round2(payment.tdsAmount || 0);
   const taxableValue = subtotal;
 
-  // GST is added on a purchase bill (recoverable input tax) and shown as a
-  // deduction on a sale bill when the buyer pays it — but for a dealer bill the
-  // invoice total is the value of goods plus TCS, minus TDS.
-  const beforeRound = taxableValue + tcsAmount - tdsAmount;
+  // The invoice total is the goods value plus GST (CGST + SGST), plus TCS when
+  // collected at source, minus TDS when deducted. GST is the buyer's liability,
+  // not income, so it must be inside the total or the printed figure will not
+  // match the sum of its own line rows.
+  const gstTotal = round2(cgstAmount + sgstAmount);
+  const beforeRound = taxableValue + gstTotal + tcsAmount - tdsAmount;
   const rounding = roundOff(beforeRound);
   const roundOffValue = rounding.roundOff;
   const total = rounding.total;

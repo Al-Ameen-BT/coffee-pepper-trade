@@ -174,7 +174,7 @@ table.print-table td {
   border: 1px solid var(--line);
   padding: 8px 10px;
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 table.print-table th {
@@ -183,9 +183,42 @@ table.print-table th {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
+  white-space: nowrap;
 }
 
-table.print-table .num { text-align: right; }
+/* Numeric columns: one right axis, figures never wrap mid-number */
+table.print-table .num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Quantity column wraps "300 kg" onto two lines on narrow sheets — keep it whole */
+table.print-table td.num {
+  white-space: nowrap;
+}
+
+/* Column widths: the line table carries many numeric columns, so give the
+   description room and let the figures share what is left evenly */
+table.print-table {
+  table-layout: fixed;
+}
+
+table.print-table col.c-sno { width: 4%; }
+table.print-table col.c-desc { width: 22%; }
+table.print-table col.c-hsn { width: 7%; }
+table.print-table col.c-lot { width: 8%; }
+table.print-table col.c-num { width: 9.8%; }
+
+/* Totals block alignment */
+.print-totals table {
+  table-layout: fixed;
+}
+
+.print-totals td:first-child,
+.print-totals th:first-child {
+  text-align: left;
+}
 
 /* Totals block */
 
