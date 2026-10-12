@@ -4,6 +4,7 @@ import { requireAuth } from "../../auth/middleware.js";
 import { ApiError } from "../../lib/errorHandler.js";
 import { partyTrade } from "../../lib/compute.js";
 import { getCompanyInfo } from "../../lib/company.js";
+import { getNextBookSerial } from "../../lib/billSequence.js";
 import type { PartyBill, BillRecordDTO } from "../../../shared/types.js";
 
 export const billsRouter = Router();
@@ -71,6 +72,18 @@ billsRouter.get("/", async (req, res, next) => {
     });
 
     res.json(records);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * Serial for the next blank sheet from the printed bill book. Declared before
+ * the `/:partyId` route so the literal path is not captured as a party id.
+ */
+billsRouter.get("/book-serial", async (_req, res, next) => {
+  try {
+    res.json(await getNextBookSerial());
   } catch (err) {
     next(err);
   }

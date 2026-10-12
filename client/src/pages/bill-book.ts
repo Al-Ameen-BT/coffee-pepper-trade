@@ -14,7 +14,12 @@ const fill = (value: string | null): string =>
 
 export async function render(): Promise<void> {
   const COMPANY = await api.get<CompanyInfoDTO>("/settings/company");
-  document.title = `Bill of Supply (Blank) · ${COMPANY.name}`;
+
+  // The pre-printed serial advances with each blank sheet pulled from the
+  // book. It is drawn from the same BillSequence counters the app bills from,
+  // so the manual book and the digital bills never collide.
+  const serial = await api.get<{ serial: string; next: string }>("/bills/book-serial");
+  document.title = `Bill of Supply ${serial.serial} · ${COMPANY.name}`;
 
   const itemRows = Array.from({ length: EMPTY_ROWS }, () => `
       <tr>
@@ -49,7 +54,7 @@ export async function render(): Promise<void> {
       <!-- Top information: two ruled columns -->
       <div class="bb-info">
         <div>
-          <div class="bb-field"><span class="lbl">Serial Number :</span> <span class="bb-serial">20</span> <span class="bb-fill"></span></div>
+          <div class="bb-field"><span class="lbl">Serial Number :</span> <span class="bb-serial">${esc(serial.serial)}</span> <span class="bb-fill"></span></div>
           <div class="bb-field"><span class="lbl">Issue Date :</span> <span class="bb-fill"></span></div>
           <div class="bb-inline-pair">
             <div class="bb-field"><span class="lbl">State :</span> ${esc(COMPANY.state)}</div>

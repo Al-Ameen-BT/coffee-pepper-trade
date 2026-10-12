@@ -84,7 +84,7 @@ export async function render(): Promise<void> {
     <div class="topbar">
       <div>
         <h2>Personal ledger</h2>
-        <p>Outstanding is cash-basis: only Payments count as realized purchases and sales.</p>
+        <p>Outstanding is cash-basis: only Payments count as realized purchases and sales. Export to CSV for the account copy.</p>
       </div>
     </div>
     <div class="card">
@@ -143,7 +143,6 @@ export async function render(): Promise<void> {
           <input type="date" name="endDate" value="${esc(endDate)}" aria-label="End date">
           <button type="submit" class="btn">Filter</button>
           <button type="button" class="btn secondary" id="export-csv">Export to CSV</button>
-          <button type="button" class="btn secondary" onclick="window.print()">Print / Save PDF</button>
         </form>
       </div>
       <div class="table-wrap">
