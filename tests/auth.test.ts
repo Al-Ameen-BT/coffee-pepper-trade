@@ -41,8 +41,8 @@ vi.mock("../src/db.js", () => {
       payment: { findMany: vi.fn(async () => []) },
       fund: {
         findMany: vi.fn(async () => [
-          { id: "f1", name: "Cash", type: "CASH", opening: 10000, payments: [], loans: [] },
-          { id: "f2", name: "Bank", type: "CURRENT", opening: 50000, payments: [], loans: [] },
+          { id: "f1", name: "Cash", type: "CASH", opening: 10000, payments: [], loans: [], otherTransactions: [] },
+          { id: "f2", name: "Bank", type: "CURRENT", opening: 50000, payments: [], loans: [], otherTransactions: [] },
         ]),
       },
       lot: { findMany: vi.fn(async () => []) },
@@ -50,6 +50,7 @@ vi.mock("../src/db.js", () => {
       party: { findMany: vi.fn(async () => []) },
       fixing: { findMany: vi.fn(async () => []) },
       item: { findMany: vi.fn(async () => []) },
+      otherTransaction: { findMany: vi.fn(async () => []) },
     },
   };
 });

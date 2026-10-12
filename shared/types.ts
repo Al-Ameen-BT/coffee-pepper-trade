@@ -23,6 +23,9 @@ export interface PartyDTO {
   role: PartyRole;
   place: string | null;
   address: string | null;
+  pincode?: string | null;
+  gstin?: string | null;
+  state?: string | null;
   createdAt: string;
 }
 
@@ -294,7 +297,8 @@ export interface CompanyInfoDTO {
   gstin: string;
   address: string;
   state: string;
-  stateCode: string;
+  pincode: string;
+  stateCode?: string | null;
   phone: string;
   bankName: string | null;
   bankAccount: string | null;

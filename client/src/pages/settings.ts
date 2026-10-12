@@ -24,7 +24,7 @@ export async function render(): Promise<void> {
         <div class="row3">
           <label>Phone <input name="phone" value="${esc(c.phone)}" placeholder="9447204847"></label>
           <label>State <input name="state" value="${esc(c.state)}" placeholder="Kerala"></label>
-          <label>State code <input name="stateCode" value="${esc(c.stateCode)}" inputmode="numeric" pattern="[0-9]{2}" maxlength="2" placeholder="32"></label>
+          <label>Pin code <input name="pincode" value="${esc(c.pincode || "673591")}" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="673591"></label>
         </div>
         <label>GSTIN <input class="upper" name="gstin" value="${esc(c.gstin)}" maxlength="15" placeholder="32APFPJ6004B1ZP"></label>
       </div>
@@ -56,7 +56,7 @@ export async function render(): Promise<void> {
         address: fd.get("address") || "",
         phone: fd.get("phone") || "",
         state: fd.get("state") || "",
-        stateCode: fd.get("stateCode") || "",
+        pincode: fd.get("pincode") || "673591",
         gstin: (fd.get("gstin") as string || "").toUpperCase(),
         bankName: fd.get("bankName") || null,
         bankAccount: fd.get("bankAccount") || null,

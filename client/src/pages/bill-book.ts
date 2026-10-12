@@ -58,7 +58,7 @@ export async function render(): Promise<void> {
           <div class="bb-field"><span class="lbl">Issue Date :</span> <span class="bb-fill"></span></div>
           <div class="bb-inline-pair">
             <div class="bb-field"><span class="lbl">State :</span> ${esc(COMPANY.state)}</div>
-            <div class="bb-field"><span class="lbl">State Code :</span> ${esc(COMPANY.stateCode)}</div>
+            <div class="bb-field"><span class="lbl">Pin Code :</span> ${esc(COMPANY.pincode)}</div>
           </div>
         </div>
         <div>
@@ -76,7 +76,7 @@ export async function render(): Promise<void> {
         <div class="bb-field"><span class="lbl">Address :</span> <span class="bb-fill wide"></span></div>
         <div class="bb-inline-pair">
           <div class="bb-field"><span class="lbl">State :</span> <span class="bb-fill"></span></div>
-          <div class="bb-field"><span class="lbl">State Code :</span> <span class="bb-fill"></span></div>
+          <div class="bb-field"><span class="lbl">Pin Code :</span> <span class="bb-fill"></span></div>
           <div class="bb-field"><span class="lbl">GSTIN :</span> <span class="bb-fill"></span></div>
         </div>
         <div class="bb-inline-pair">
@@ -93,7 +93,7 @@ export async function render(): Promise<void> {
             <th>Name of product</th>
             <th>HSN</th>
             <th>Qty in Kgs.</th>
-            <th>Rate</th>
+            <th>Rate/per KG</th>
             <th>Amount</th>
             <th>Total</th>
           </tr>

@@ -35,6 +35,9 @@ model Party {
   role      PartyRole
   place     String?
   address   String?
+  pincode   String?
+  gstin     String?
+  state     String?    @default("Kerala")
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   lots      Lot[]
@@ -326,7 +329,8 @@ model CompanyInfo {
   gstin       String
   address     String
   state       String
-  stateCode   String
+  pincode     String  @default("673591")
+  stateCode   String?
   phone       String
   bankName    String?
   bankAccount String?

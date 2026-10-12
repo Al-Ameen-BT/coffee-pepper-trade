@@ -70,6 +70,9 @@ async function main() {
       phone: "98450 11223",
       role: "SUPPLIER",
       place: "Madikeri",
+      pincode: "571201",
+      state: "Karnataka",
+      gstin: "29AAAAA0000A1Z5",
       address: "Near Abbey Falls Road, Madikeri, Kodagu",
     },
   });
@@ -80,6 +83,9 @@ async function main() {
       phone: "821 240 1188",
       role: "BUYER",
       place: "Mysuru",
+      pincode: "570001",
+      state: "Karnataka",
+      gstin: "29BBBBB1111B1Z2",
       address: "No. 12, Bannimantap Industrial Area, Mysuru",
     },
   });
@@ -90,6 +96,9 @@ async function main() {
       phone: "97401 55670",
       role: "BOTH",
       place: "Virajpet",
+      pincode: "571218",
+      state: "Karnataka",
+      gstin: "29CCCCC2222C1Z9",
       address: "Main Road, Virajpet, Kodagu",
     },
   });
@@ -101,6 +110,9 @@ async function main() {
       phone: "99001 23456",
       role: "SUPPLIER",
       place: "Gonikoppal",
+      pincode: "571213",
+      state: "Karnataka",
+      gstin: "29DDDDD3333D1Z6",
       address: "Curing Works, Gonikoppal, Kodagu",
     },
   });
@@ -111,6 +123,9 @@ async function main() {
       phone: "98860 78901",
       role: "BUYER",
       place: "Bengaluru",
+      pincode: "560058",
+      state: "Karnataka",
+      gstin: "29EEEEE4444E1Z3",
       address: "Export House, Peenya, Bengaluru",
     },
   });
@@ -121,6 +136,9 @@ async function main() {
       phone: "97412 34567",
       role: "BOTH",
       place: "Suntikoppa",
+      pincode: "571237",
+      state: "Karnataka",
+      gstin: "29FFFFF5555F1Z0",
       address: "Market Road, Suntikoppa, Kodagu",
     },
   });
@@ -314,21 +332,20 @@ async function main() {
   console.log("Created loans");
 
   // Company identity (printed on bills & statements) — editable later in Company Settings
-  const existingCompany = await prisma.companyInfo.findFirst();
-  if (!existingCompany) {
-    await prisma.companyInfo.create({
-      data: {
-        name: "UZHUNNUNGAL TRADERS",
-        tagline: "Hill Produce Dealer",
-        gstin: "32APFPJ6004B1ZP",
-        address: "KARIAMBADI P.O., WAYANAD DT., KERALA - 673591",
-        state: "Kerala",
-        stateCode: "32",
-        phone: "9447204847",
-      },
-    });
-    console.log("Created company info");
-  }
+  await prisma.companyInfo.deleteMany();
+  await prisma.companyInfo.create({
+    data: {
+      name: "UZHUNNUNGAL TRADERS",
+      tagline: "Hill Produce Dealer",
+      gstin: "32APFPJ6004B1ZP",
+      address: "KARIAMBADI P.O., WAYANAD DT., KERALA",
+      state: "Kerala",
+      pincode: "673591",
+      stateCode: "32",
+      phone: "9447204847",
+    },
+  });
+  console.log("Created company info");
 
   console.log("Seed complete!");
   console.log("Login with: admin@uzhunnungal.com / admin12345");

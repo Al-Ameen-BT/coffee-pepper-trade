@@ -14,10 +14,24 @@ const partySchema = z.object({
   role: z.enum(["SUPPLIER", "BUYER", "BOTH"]),
   place: z.string().optional(),
   address: z.string().optional(),
+  pincode: z.string().optional(),
+  gstin: z.string().optional(),
+  state: z.string().optional(),
 });
 
-function toDTO(p: { id: string; name: string; phone: string | null; role: string; place: string | null; address: string | null; createdAt: Date }): PartyDTO {
-  return { id: p.id, name: p.name, phone: p.phone, role: p.role as PartyDTO["role"], place: p.place, address: p.address, createdAt: p.createdAt.toISOString() };
+function toDTO(p: { id: string; name: string; phone: string | null; role: string; place: string | null; address: string | null; pincode?: string | null; gstin?: string | null; state?: string | null; createdAt: Date }): PartyDTO {
+  return {
+    id: p.id,
+    name: p.name,
+    phone: p.phone,
+    role: p.role as PartyDTO["role"],
+    place: p.place,
+    address: p.address,
+    pincode: p.pincode ?? null,
+    gstin: p.gstin ?? null,
+    state: p.state ?? "Kerala",
+    createdAt: p.createdAt.toISOString()
+  };
 }
 
 partiesRouter.get("/", async (_req, res, next) => {

@@ -68,7 +68,7 @@ export async function render(): Promise<void> {
           <label>Price now? (optional ₹/kg) <input type="number" step="0.01" min="0" name="rate" placeholder="Leave blank to fix later"></label>
           <label>Kg to price now <input type="number" step="0.001" min="0" name="fixKg" placeholder="Blank = all"></label>
         </div>
-        <label>Bill / Lot No. <input name="billNo" placeholder="S-003"></label>
+        <label>Lot reference (optional) <input name="billNo" placeholder="Optional lot mark / reference"></label>
         <label>Notes <textarea name="notes" rows="2"></textarea></label>
         <div class="actions">
           <button class="btn" type="submit">Save lot</button>

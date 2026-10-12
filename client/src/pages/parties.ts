@@ -43,6 +43,11 @@ export async function render(): Promise<void> {
           <label>Place <input name="place" placeholder="Town / village"></label>
           <label>Phone <input name="phone" placeholder="Mobile / landline"></label>
         </div>
+        <div class="row3">
+          <label>Pin code <input name="pincode" placeholder="6-digit PIN" maxlength="6" inputmode="numeric"></label>
+          <label>State <input name="state" value="Kerala" placeholder="Kerala"></label>
+          <label>GSTIN <input class="upper" name="gstin" placeholder="GST number (optional)" maxlength="15"></label>
+        </div>
         <label>Address <textarea name="address" rows="2" placeholder="House / estate, street, post, district"></textarea></label>
         <div class="actions"><button class="btn" type="submit">Save party</button></div>
       </form>
@@ -67,6 +72,9 @@ export async function render(): Promise<void> {
         role: fd.get("role"),
         place: fd.get("place") || undefined,
         phone: fd.get("phone") || undefined,
+        pincode: fd.get("pincode") || undefined,
+        state: fd.get("state") || undefined,
+        gstin: (fd.get("gstin") as string || "").toUpperCase() || undefined,
         address: fd.get("address") || undefined,
       });
       toast("Party created", "success");

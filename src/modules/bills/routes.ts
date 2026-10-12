@@ -4,7 +4,7 @@ import { requireAuth } from "../../auth/middleware.js";
 import { ApiError } from "../../lib/errorHandler.js";
 import { partyTrade } from "../../lib/compute.js";
 import { getCompanyInfo } from "../../lib/company.js";
-import { getNextBookSerial } from "../../lib/billSequence.js";
+import { getNextBookSerial, getNextBillNo } from "../../lib/billSequence.js";
 import type { PartyBill, BillRecordDTO } from "../../../shared/types.js";
 
 export const billsRouter = Router();
@@ -195,40 +195,91 @@ billsRouter.get("/formal/:fixingId", async (req, res, next) => {
 
     if (!fixing) throw new ApiError(404, "Fixing not found");
 
+    let billNo = fixing.billNo;
+    if (!billNo) {
+      const prefix = fixing.lot.kind === "PURCHASE" ? "PUR" : "SAL";
+      billNo = await getNextBillNo(prefix, fixing.date);
+      await prisma.fixing.update({
+        where: { id: fixing.id },
+        data: { billNo },
+      });
+    }
+
     const tcsRate = fixing.tcsRate || 0;
     const tcsAmount = fixing.tcsAmount || 0;
     const tdsRate = fixing.tdsRate || 0;
     const tdsAmount = fixing.tdsAmount || 0;
 
-    // HSN code by commodity
     const hsnCode = hsnForItem(fixing.lot.item);
+    const taxableValue = fixing.kg * fixing.rate;
+    const cgstRate = fixing.lot.item.cgstRate ?? 2.5;
+    const sgstRate = cgstRate;
+    const gstRate = cgstRate + sgstRate;
+    const cgstAmount = Math.round((taxableValue * cgstRate) / 100 * 100) / 100;
+    const sgstAmount = Math.round((taxableValue * sgstRate) / 100 * 100) / 100;
+    const reverseChargeTax = 0;
+    const grandTotal = Math.round((taxableValue + cgstAmount + sgstAmount + tcsAmount - tdsAmount) * 100) / 100;
 
     const company = await getCompanyInfo();
 
     res.json({
+      billNo,
+      date: fixing.date.toISOString().slice(0, 10),
+      dateTime: fixing.date.toLocaleDateString("en-IN", {
+        year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
+      }),
+      kind: fixing.lot.kind,
       company: {
         name: company.name,
         tagline: company.tagline,
         gstin: company.gstin,
         address: company.address,
+        pincode: company.pincode || "673591",
         phone: company.phone,
         state: company.state,
-        stateCode: company.stateCode,
       },
-      billNo: fixing.billNo,
-      date: fixing.date.toISOString().slice(0, 10),
-      kg: fixing.kg,
-      rate: fixing.rate,
+      party: {
+        name: fixing.lot.party.name,
+        address: fixing.lot.party.address || "",
+        place: fixing.lot.party.place || "",
+        pincode: fixing.lot.party.pincode || "",
+        state: fixing.lot.party.state || "Kerala",
+        gstin: fixing.lot.party.gstin || "",
+        phone: fixing.lot.party.phone || "",
+      },
+      item: {
+        description: fixing.lot.item.name,
+        hsnCode,
+        qty: fixing.kg,
+        unitPrice: fixing.rate,
+        total: taxableValue,
+        gstRate,
+        cgstRate,
+        sgstRate,
+      },
+      taxableValue,
+      cgstRate,
+      cgstAmount,
+      sgstRate,
+      sgstAmount,
       tcsRate,
       tcsAmount,
       tdsRate,
       tdsAmount,
+      reverseChargeTax,
+      grandTotal,
+      // Backwards-compatibility fields
+      kg: fixing.kg,
+      rate: fixing.rate,
       lot: {
         item: { name: fixing.lot.item.name, hsnCode },
         party: { 
           name: fixing.lot.party.name, 
           address: fixing.lot.party.address || "",
-          place: fixing.lot.party.place || ""
+          place: fixing.lot.party.place || "",
+          pincode: fixing.lot.party.pincode || "",
+          state: fixing.lot.party.state || "Kerala",
+          gstin: fixing.lot.party.gstin || "",
         }
       }
     });

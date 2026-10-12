@@ -1,9 +1,10 @@
 import { prisma } from "../db.js";
 
-function getCurrentFY(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth(); // 0-based
+export function getCurrentFY(dateInput?: Date | string | null): string {
+  const d = dateInput ? new Date(dateInput) : new Date();
+  const validDate = isNaN(d.getTime()) ? new Date() : d;
+  const year = validDate.getFullYear();
+  const month = validDate.getMonth(); // 0-based
   // FY starts April 1
   if (month >= 3) {
     return `${year % 100}-${(year + 1) % 100}`;
@@ -12,8 +13,8 @@ function getCurrentFY(): string {
   }
 }
 
-export async function getNextBillNo(prefix: string): Promise<string> {
-  const fy = getCurrentFY();
+export async function getNextBillNo(prefix: string, dateInput?: Date | string | null): Promise<string> {
+  const fy = getCurrentFY(dateInput);
   
   const seq = await prisma.billSequence.upsert({
     where: {
