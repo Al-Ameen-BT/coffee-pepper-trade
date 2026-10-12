@@ -26,7 +26,7 @@ export async function render(): Promise<void> {
         <p>Create a new party, then use them on purchases, sales, payments, and the personal ledger.</p>
       </div>
     </div>
-    <div class="card" style="margin-bottom:16px">
+    <div class="card">
       <h3>Create new party</h3>
       <form class="stack" id="new-party-form">
         <div class="row">
@@ -49,10 +49,12 @@ export async function render(): Promise<void> {
     </div>
     <div class="card">
       <h3>All parties</h3>
+      <div class="table-wrap">
       <table>
-        <thead><tr><th>Name</th><th>Place</th><th>Address</th><th>Phone</th><th>Role</th><th></th></tr></thead>
+        <thead><tr><th scope="col">Name</th><th scope="col">Place</th><th scope="col">Address</th><th scope="col">Phone</th><th scope="col">Role</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
+      </div>
     </div>
   `);
 

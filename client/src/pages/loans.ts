@@ -33,7 +33,7 @@ export async function render(): Promise<void> {
             <td class="num">${money(l.amount)}</td>
             <td class="num"><strong>${money(bal)}</strong></td>
             <td>${isSettled ? '<span class="tag ok">Settled</span>' : `<span class="tag ${given ? "pay" : "receive"}">${esc(l.status || "ACTIVE")}</span>`}</td>
-            <td>${!isSettled ? `<button class="btn secondary" style="padding:2px 8px;font-size:11px" data-repay="${l.id}">Repay</button>` : ""}</td>
+            <td>${!isSettled ? `<button class="btn secondary sm" data-repay="${l.id}">Repay</button>` : ""}</td>
           </tr>
         `;
       }).join("")
@@ -46,7 +46,7 @@ export async function render(): Promise<void> {
         <p>Record loans and advances given or taken.</p>
       </div>
     </div>
-    <div class="grid two" style="margin-bottom:16px">
+    <div class="grid two">
       <div class="card">
         <h3>New advance</h3>
         <form class="stack" id="advance-form">
@@ -109,10 +109,12 @@ export async function render(): Promise<void> {
     </div>
     <div class="card">
       <h3>All loans & advances</h3>
+      <div class="table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Type</th><th>Party</th><th>Item</th><th>Account</th><th class="num">Original</th><th class="num">Balance</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th scope="col">Date</th><th scope="col">Type</th><th scope="col">Party</th><th scope="col">Item</th><th scope="col">Account</th><th scope="col" class="num">Original</th><th scope="col" class="num">Balance</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
+      </div>
     </div>
   `);
 
@@ -124,8 +126,8 @@ export async function render(): Promise<void> {
       if (!loan) return;
 
       openModal(`
-        <h3 style="font-family:Fraunces,serif;font-size:22px;margin:0 0 8px">Record Repayment</h3>
-        <p style="color:var(--muted);margin:0 0 12px">Repaying ${esc(loan.partyName)} · Balance: ${money(loan.balanceAmount)}</p>
+        <h3 class="modal-title">Record Repayment</h3>
+        <p class="note">Repaying ${esc(loan.partyName)} · Balance: ${money(loan.balanceAmount)}</p>
         <form class="stack" id="repay-form">
           <label>Date <input required type="date" name="date" value="${today()}"></label>
           <label>Amount ₹ <input required type="number" step="0.01" min="0.01" max="${loan.balanceAmount}" name="amount" value="${loan.balanceAmount}"></label>

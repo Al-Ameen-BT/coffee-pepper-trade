@@ -1,6 +1,7 @@
 import { api } from "../api.js";
 import { esc, money, fundType } from "../format.js";
-import { renderShell, toast } from "../main.js";
+import { renderShell, toast, openModal, closeModal } from "../main.js";
+import { modalForm } from "../components/modal.js";
 import type { FundDTO } from "../../../shared/types.js";
 
 export async function render(): Promise<void> {
@@ -11,9 +12,9 @@ export async function render(): Promise<void> {
       <div class="card">
         <h3>${fundType(f.type)}</h3>
         <p class="metric">${money(f.balance)}</p>
-        <p>${esc(f.name)}<br><small>Opening ${money(f.opening)} <button class="btn secondary" style="padding:2px 8px;font-size:11px;margin-left:6px" data-edit-opening="${f.id}" data-current-opening="${f.opening}">Edit</button>${f.bankName ? " · " + esc(f.bankName) : ""}${
+        <p>${esc(f.name)}<br><small>Opening ${money(f.opening)} <button class="btn secondary sm" data-edit-opening="${f.id}" data-current-opening="${f.opening}">Edit</button>${f.bankName ? " · " + esc(f.bankName) : ""}${
           f.accountNumberMasked
-            ? `<br><span style="color:var(--muted)">A/c:</span> <strong id="acc-${f.id}">${esc(f.accountNumberMasked)}</strong> <button class="btn secondary" style="padding:2px 8px;font-size:11px;margin-left:6px" data-reveal="${f.id}">Reveal</button>`
+            ? `<br><span class="muted">A/c:</span> <strong id="acc-${f.id}">${esc(f.accountNumberMasked)}</strong> <button class="btn secondary sm" data-reveal="${f.id}">Reveal</button>`
             : ""
         }</small></p>
       </div>
@@ -27,8 +28,8 @@ export async function render(): Promise<void> {
         <p>Manage fund accounts, view movements, and secure encrypted bank details.</p>
       </div>
     </div>
-    <div class="grid three" style="margin-bottom:16px">${cards}</div>
-    <div class="card" style="margin-bottom:16px">
+    <div class="grid three">${cards}</div>
+    <div class="card">
       <h3>Create new account</h3>
       <form class="stack" id="new-fund-form">
         <div class="row">
@@ -51,20 +52,8 @@ export async function render(): Promise<void> {
     </div>
     <div class="card">
       <h3>All movements</h3>
-      <div id="movements-table"><div class="empty">Loading...</div></div>
+      <div id="movements-table"><div class="empty">Loading…</div></div>
     </div>
-
-    <dialog id="edit-opening-modal">
-      <form id="edit-opening-form" class="stack" style="min-width:300px">
-        <h3>Edit Opening Balance</h3>
-        <input type="hidden" name="fundId" id="edit-opening-id" />
-        <label>Opening Amount ₹ <input type="number" step="0.01" name="amount" id="edit-opening-amount" required></label>
-        <div class="actions">
-          <button class="btn secondary" type="button" onclick="document.getElementById('edit-opening-modal').close()">Cancel</button>
-          <button class="btn" type="submit">Save</button>
-        </div>
-      </form>
-    </dialog>
   `);
 
   // Wire reveal buttons
@@ -84,30 +73,30 @@ export async function render(): Promise<void> {
     });
   });
 
-  // Wire edit opening buttons
-  const editModal = document.getElementById("edit-opening-modal") as HTMLDialogElement;
+  // Wire edit-opening buttons — one modal system: openModal + modalForm
   document.querySelectorAll("[data-edit-opening]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const fundId = (btn as HTMLElement).dataset.editOpening!;
       const currentOpening = (btn as HTMLElement).dataset.currentOpening!;
-      (document.getElementById("edit-opening-id") as HTMLInputElement).value = fundId;
-      (document.getElementById("edit-opening-amount") as HTMLInputElement).value = currentOpening;
-      editModal.showModal();
-    });
-  });
 
-  document.getElementById("edit-opening-form")!.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const fundId = (document.getElementById("edit-opening-id") as HTMLInputElement).value;
-    const amount = Number((document.getElementById("edit-opening-amount") as HTMLInputElement).value);
-    try {
-      await api.put(`/funds/${fundId}/opening`, { amount });
-      toast("Opening balance updated", "success");
-      editModal.close();
-      render();
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Failed", "error");
-    }
+      openModal(modalForm("Edit opening balance", `
+        <input type="hidden" name="fundId" value="${esc(fundId)}">
+        <label>Opening amount ₹ <input type="number" step="0.01" name="amount" value="${esc(currentOpening)}" required></label>
+      `, "Save"));
+
+      document.getElementById("modal-form")!.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target as HTMLFormElement);
+        try {
+          await api.put(`/funds/${fd.get("fundId")}/opening`, { amount: Number(fd.get("amount")) });
+          closeModal();
+          toast("Opening balance updated", "success");
+          render();
+        } catch (err) {
+          toast(err instanceof Error ? err.message : "Failed", "error");
+        }
+      });
+    });
   });
 
   document.getElementById("new-fund-form")!.addEventListener("submit", async (e) => {
@@ -157,7 +146,7 @@ export async function render(): Promise<void> {
     });
 
     movementsDiv.innerHTML = rows.length
-      ? `<table><thead><tr><th>Date</th><th>Account</th><th>Particular</th><th class="num">In</th><th class="num">Out</th></tr></thead><tbody>${rows.join("")}</tbody></table>`
+      ? `<div class="table-wrap"><table><thead><tr><th scope="col">Date</th><th scope="col">Account</th><th scope="col">Particular</th><th scope="col" class="num">In</th><th scope="col" class="num">Out</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`
       : `<div class="empty">No movements yet.</div>`;
   } catch {
     movementsDiv.innerHTML = `<div class="empty">Failed to load movements.</div>`;

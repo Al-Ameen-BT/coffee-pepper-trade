@@ -1,7 +1,7 @@
 import { api } from "../api.js";
 import { esc, money, kg, today } from "../format.js";
 import { renderShell, toast } from "../main.js";
-import type { PaymentDTO, PartyDTO, ItemDTO, FundDTO } from "../../../shared/types.js";
+import type { PaymentDTO, PartyDTO, ItemDTO, FundDTO, LoanDTO } from "../../../shared/types.js";
 
 export async function render(): Promise<void> {
   const [payments, parties, items, funds] = await Promise.all([
@@ -14,22 +14,6 @@ export async function render(): Promise<void> {
   const cashFunds = funds.filter((f) => f.type === "CASH");
   const bankFunds = funds.filter((f) => f.type !== "CASH");
 
-  const rows = payments.length
-    ? payments.map((p) => `
-      <tr>
-        <td>${p.date}</td>
-        <td>${esc(p.billNo)}</td>
-        <td>${p.direction === "PAY" ? '<span class="tag pay">Purchase (Pay)</span>' : '<span class="tag receive">Sale (Receive)</span>'}</td>
-        <td>${esc(p.partyName)}</td>
-        <td>${p.fundName}</td>
-        <td class="num">${p.priceKg ? kg(p.priceKg) : "—"}</td>
-        <td class="num">${money(p.amount)}</td>
-        <td>${p.direction === "PAY" ? `<span class="tag pay">− ${money(p.amount)}</span>` : `<span class="tag receive">+ ${money(p.amount)}</span>`}</td>
-        <td>${esc(p.notes || "")}</td>
-      </tr>
-    `).join("")
-    : `<tr><td colspan="9" class="empty">No payments yet.</td></tr>`;
-
   renderShell(`
     <div class="topbar">
       <div>
@@ -37,17 +21,15 @@ export async function render(): Promise<void> {
         <p>Purchase and sale are realized only when you save a payment with a bill number.</p>
       </div>
     </div>
-    <div class="card" style="margin-bottom:16px">
+    <div class="card">
       <h3>Record payment</h3>
       <form class="stack" id="payment-form">
-        <div class="row">
-          <label>Date <input required type="date" name="date" value="${today()}"></label>
-        </div>
+        <label>Date <input required type="date" name="date" value="${today()}"></label>
         <label>Gross Amount ₹ <input required type="number" step="0.01" min="0.01" name="grossAmount" id="pay-gross" placeholder="Auto-fills from kg × rate"></label>
-        <div id="advance-box" style="display:none;background:var(--card-bg, #fff);border:1px dashed var(--gold);padding:12px;border-radius:6px;margin:6px 0">
-          <h4 style="margin:0 0 6px;color:var(--coffee)">Deduct from Active Harvest Advances:</h4>
-          <div id="advance-list" class="stack" style="gap:6px"></div>
-          <p style="margin:8px 0 0;font-size:13px;color:var(--muted)">Advance deduction: <strong id="adv-deduct-total">₹0</strong></p>
+        <div id="advance-box" class="advance-box" hidden>
+          <h4>Deduct from active harvest advances</h4>
+          <div id="advance-list" class="stack"></div>
+          <p class="note">Advance deduction: <strong id="adv-deduct-total">₹0</strong></p>
         </div>
         <label>Net Cash to Pay / Receive ₹ <input required type="number" step="0.01" min="0.01" name="amount" id="pay-net" placeholder="Net cash after advance deduction"></label>
         <label>Transaction type
@@ -58,10 +40,12 @@ export async function render(): Promise<void> {
         </label>
         <label>Party <select required name="partyId" id="pay-party">${parties.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></label>
         <label>Item to price <select name="itemId"><option value="">Any pending item</option>${items.map((i) => `<option value="${i.id}">${esc(i.name)}</option>`).join("")}</select></label>
-        <div class="row">
+        <div class="row3">
           <label>Quantity to price (kg) <input type="number" step="0.001" min="0" name="priceKg" placeholder="e.g. 200"></label>
           <label>Rate ₹/kg <input type="number" step="0.01" min="0" name="rate" placeholder="Required if quantity is entered"></label>
+          <label>TCS % <input type="number" step="0.01" min="0" name="tcsRate" placeholder="Auto 0.1% over ₹50L"></label>
         </div>
+        <label>TDS % <input type="number" step="0.01" min="0" name="tdsRate" placeholder="Optional, e.g. 1.0"></label>
         <div class="row">
           <label>Payment method
             <select required name="method">
@@ -77,8 +61,9 @@ export async function render(): Promise<void> {
     </div>
     <div class="card">
       <h3>Payment history</h3>
+      <div class="table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Bill No.</th><th>Type</th><th>Party</th><th>Account</th><th class="num">Qty priced</th><th class="num">Gross</th><th class="num">Adv Deducted</th><th class="num">Net Cash</th><th>Notes</th></tr></thead>
+        <thead><tr><th scope="col">Date</th><th scope="col">Bill No.</th><th scope="col">Type</th><th scope="col">Party</th><th scope="col">Account</th><th scope="col" class="num">Qty priced</th><th scope="col" class="num">Gross</th><th scope="col" class="num">Adv Deducted</th><th scope="col" class="num">Net Cash</th><th scope="col">Notes</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
         <tbody>
           ${payments.length ? payments.map((p) => `
             <tr>
@@ -89,13 +74,15 @@ export async function render(): Promise<void> {
               <td>${p.fundName}</td>
               <td class="num">${p.priceKg ? kg(p.priceKg) : "—"}</td>
               <td class="num">${money(p.grossAmount ?? p.amount)}</td>
-              <td class="num">${Number(p.advanceDeducted) > 0 ? `<span class="tag gold font-mono">− ${money(p.advanceDeducted!)}</span>` : "—"}</td>
-              <td class="num font-bold">${money(p.amount)}</td>
+              <td class="num">${Number(p.advanceDeducted) > 0 ? `<span class="tag gold">− ${money(p.advanceDeducted!)}</span>` : "—"}</td>
+              <td class="num"><strong>${money(p.amount)}</strong></td>
               <td>${esc(p.notes || "")}</td>
+              <td><a href="/invoice/new?paymentId=${p.id}" class="btn secondary sm">Create invoice</a></td>
             </tr>
-          `).join("") : '<tr><td colspan="10" class="empty">No payments yet.</td></tr>'}
+          `).join("") : '<tr><td colspan="11" class="empty">No payments yet.</td></tr>'}
         </tbody>
       </table>
+      </div>
     </div>
   `);
 
@@ -130,9 +117,9 @@ export async function render(): Promise<void> {
       const loans = await api.get<LoanDTO[]>(`/loans?partyId=${partyId}`);
       currentAdvances = loans.filter((l) => Number(l.balanceAmount) > 0 && (l.kind === "ADVANCE_GIVEN" || l.kind === "LOAN_GIVEN"));
       if (currentAdvances.length > 0) {
-        advanceBox.style.display = "block";
+        advanceBox.hidden = false;
         advanceList.innerHTML = currentAdvances.map((adv) => `
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+          <label class="adv-row">
             <input type="checkbox" data-adv-id="${adv.id}" data-adv-bal="${adv.balanceAmount}" class="adv-check">
             <span>${adv.date} · <strong>${money(adv.balanceAmount)}</strong> remaining (${adv.kind.replaceAll("_", " ")}${adv.itemName ? " · " + esc(adv.itemName) : ""})</span>
           </label>
@@ -142,13 +129,13 @@ export async function render(): Promise<void> {
           cb.addEventListener("change", syncNetFromAdvances);
         });
       } else {
-        advanceBox.style.display = "none";
+        advanceBox.hidden = true;
         advanceList.innerHTML = "";
         advDeductTotalEl.textContent = "₹0";
       }
       syncNetFromAdvances();
     } catch {
-      advanceBox.style.display = "none";
+      advanceBox.hidden = true;
     }
   }
 
@@ -196,7 +183,10 @@ export async function render(): Promise<void> {
 
   document.getElementById("payment-form")!.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const fd = new FormData(e.target as HTMLFormElement);
+    const form = e.target as HTMLFormElement;
+    const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+    const fd = new FormData(form);
     const deductions = getSelectedAdvanceDeductions();
     const totalDeducted = deductions.reduce((s, d) => s + d.amount, 0);
     const grossVal = Number(fd.get("grossAmount")) || Number(fd.get("amount"));
@@ -215,13 +205,16 @@ export async function render(): Promise<void> {
         itemId: fd.get("itemId") || undefined,
         priceKg: fd.get("priceKg") ? Number(fd.get("priceKg")) : undefined,
         rate: fd.get("rate") ? Number(fd.get("rate")) : undefined,
+        tcsRate: fd.get("tcsRate") ? Number(fd.get("tcsRate")) : undefined,
+        tdsRate: fd.get("tdsRate") ? Number(fd.get("tdsRate")) : undefined,
         method: fd.get("method"),
         notes: fd.get("notes") || undefined,
       });
-      toast("Payment recorded with advance adjustment", "success");
+      toast(totalDeducted > 0 ? "Payment recorded with advance adjustment" : "Payment recorded", "success");
       render();
     } catch (err) {
       toast(err instanceof Error ? err.message : "Failed", "error");
+      if (submitBtn) submitBtn.disabled = false;
     }
   });
 }

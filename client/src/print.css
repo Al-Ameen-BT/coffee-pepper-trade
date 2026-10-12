@@ -1,0 +1,445 @@
+/* ─── Print system ──────────────────────────────────────────────────────────
+   One stylesheet for all printed output: window.print() from any page,
+   the party statement (/print-statement), and the formal bill (/print-bill).
+   Rooted in the same tokens as styles.css — espresso ink, paper tints,
+   Fraunces display — so printed documents carry the same identity. */
+
+@page { size: A4 portrait; margin: 15mm; }
+
+.print-only { display: none; }
+
+@media print {
+  .sidebar, .no-print, .print-bar, .toast-container, .skip-link { display: none !important; }
+  /* Reset screen min-heights — they push a phantom empty band onto a second page */
+  html, body { min-height: 0; }
+  .app { display: block; }
+  .main { padding: 0; }
+  .card { box-shadow: none; }
+  .table-wrap { overflow: visible; }
+  body {
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-only { display: block; }
+}
+
+/* ─── Print bar (screen-only toolbar above a document) ─── */
+
+.print-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s2);
+  padding: var(--s3) var(--s4);
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--s4);
+}
+
+/* ─── Print document (the A4 sheet on screen) ─── */
+
+.print-doc {
+  max-width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  background: #fff;
+  padding: var(--s5);
+  box-shadow: 0 0 10px rgba(28, 20, 16, 0.15);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Print overrides come AFTER the base rules — equal specificity, source order decides */
+@media print {
+  .print-doc {
+    box-shadow: none;
+    padding: 0;
+    max-width: none;
+    min-height: 0;
+  }
+}
+
+.print-doc h1 {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 28px;
+  margin: 0 0 4px;
+}
+
+.print-doc .center { text-align: center; }
+
+.doc-title {
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  margin: 0 0 var(--s5);
+}
+
+.doc-sub {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+.print-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s4);
+  border-bottom: 2px solid var(--espresso);
+  padding-bottom: var(--s3);
+  margin-bottom: var(--s4);
+}
+
+.print-head .right { text-align: right; }
+
+.print-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s4);
+  margin-bottom: var(--s5);
+}
+
+.print-meta .right { text-align: right; }
+.print-meta p { margin: 2px 0; }
+
+/* Bordered document table — warmer than pure black: espresso lines, paper tint header */
+
+table.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--s4);
+}
+
+table.print-table th,
+table.print-table td {
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+table.print-table th {
+  background: var(--paper);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+table.print-table .num { text-align: right; }
+
+/* Totals block */
+
+.print-totals {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--s4);
+}
+
+.print-totals table {
+  width: auto;
+  min-width: 300px;
+  border-collapse: collapse;
+}
+
+.print-totals td { padding: 5px 10px; }
+.print-totals .num { text-align: right; }
+
+.print-totals .total-row td {
+  border-top: 2px solid var(--espresso);
+  border-bottom: 3px double var(--espresso);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+/* Signature row (formal bill) */
+
+.print-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 64px;
+}
+
+.sign-box { text-align: center; font-size: 14px; }
+
+.sign-box-line {
+  border-top: 1px solid var(--ink);
+  width: 200px;
+  margin-top: 50px;
+  padding-top: 8px;
+}
+
+/* ─── Bill book: blank Bill of Supply form (/bill-book) ────────────────────
+   Traditional Indian bill-book stationery: thin ink rules, dotted fill
+   lines, a light pink header accent (pepper-tint family), red pre-printed
+   serial. Sheet is pure white so it also runs on carbonless printers. */
+
+.bb {
+  --bb-pink: #f8e7ec;
+  --bb-red: #b91c1c;
+  font-size: 13px;
+  line-height: 1.45;
+  /* Light cream-pink bill-book paper */
+  background: #faf3ea;
+}
+
+.bb-rule-box { border: 1px solid var(--ink); }
+
+/* Header band */
+
+.bb-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--s3);
+  align-items: start;
+  background: var(--bb-pink);
+  border: 1px solid var(--ink);
+  padding: var(--s2) var(--s3);
+}
+
+.bb-form-name {
+  display: inline-block;
+  border: 1px solid var(--ink);
+  background: #fff;
+  padding: 4px 10px;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.bb-head-center { text-align: center; }
+
+.bb-head-center h1 {
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.bb-tagline {
+  margin: 2px 0 0;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.bb-addr {
+  margin: 2px 0 0;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.bb-head-right {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.bb-gstin {
+  border: 1px solid var(--ink);
+  border-top: 0;
+  padding: 4px var(--s4);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+/* Fillable field: label + dotted rule that flexes */
+
+.bb-field {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.bb-field .lbl { white-space: nowrap; font-weight: 600; }
+
+.bb-fill {
+  flex: 1;
+  border-bottom: 1px dotted var(--muted);
+  min-width: 40px;
+  height: 1.1em;
+}
+
+.bb-fill.wide { min-width: 120px; }
+
+/* Pre-printed red serial number (bill-book convention) */
+
+.bb-serial {
+  color: var(--bb-red);
+  font-family: Georgia, serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+/* Top information block: two ruled columns */
+
+.bb-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--ink);
+  border-top: 0;
+}
+
+.bb-info > div { padding: var(--s2) var(--s3); }
+
+.bb-info > div:first-child { border-right: 1px solid var(--ink); }
+
+.bb-inline-pair {
+  display: flex;
+  gap: var(--s4);
+}
+
+.bb-inline-pair .bb-field { flex: 1; }
+
+/* Receiver block */
+
+.bb-receiver {
+  border: 1px solid var(--ink);
+  border-top: 0;
+  padding: var(--s2) var(--s3);
+}
+
+.bb-receiver .bb-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+/* Product table */
+
+table.bb-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--ink);
+  border-top: 0;
+}
+
+table.bb-table th,
+table.bb-table td {
+  border: 1px solid var(--ink);
+  padding: 6px 8px;
+  text-align: left;
+}
+
+table.bb-table th {
+  background: var(--bb-pink);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Light horizontal ruling on the empty item rows */
+table.bb-table tbody td {
+  border-color: var(--ink);
+  border-top-color: #b9a896;
+  border-bottom-color: #b9a896;
+  height: 27px;
+}
+
+table.bb-table .num { text-align: right; }
+table.bb-table .ctr { text-align: center; }
+
+table.bb-table tfoot td {
+  font-weight: 700;
+  background: var(--bb-pink);
+  height: auto;
+}
+
+/* Bottom summary: words + bank + terms | seal | amounts + signature */
+
+.bb-bottom {
+  display: grid;
+  grid-template-columns: 1.5fr 0.6fr 1fr;
+  border: 1px solid var(--ink);
+  border-top: 0;
+}
+
+.bb-bottom > section {
+  padding: var(--s2) var(--s3);
+  border-right: 1px solid var(--ink);
+}
+
+.bb-bottom > section:last-child { border-right: 0; }
+
+.bb-words .bb-fill { display: block; margin-top: 10px; }
+
+.bb-bank {
+  border: 1px solid var(--ink);
+  padding: var(--s2) var(--s3);
+  margin-top: var(--s3);
+}
+
+.bb-bank .bb-field:last-child { margin-bottom: 0; }
+
+.bb-terms { margin-top: var(--s3); font-size: 11.5px; }
+
+.bb-terms .bb-terms-head {
+  font-weight: 700;
+  text-decoration: underline;
+  margin-bottom: 2px;
+}
+
+.bb-terms ol { margin: 0; padding-left: 16px; }
+
+/* Seal area — large empty rectangle for the company stamp */
+
+.bb-seal {
+  display: grid;
+  place-items: center;
+}
+
+.bb-seal-box {
+  width: 150px;
+  height: 96px;
+  border: 1px dashed var(--muted);
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Amount summary box + certification */
+
+.bb-amounts {
+  border: 1px solid var(--ink);
+  padding: var(--s2) var(--s3);
+}
+
+.bb-amounts .bb-field { margin-bottom: 10px; }
+
+.bb-amounts .bb-total-value {
+  font-weight: 700;
+  background: var(--bb-pink);
+  margin: var(--s2) calc(-1 * var(--s3)) 0;
+  padding: 4px var(--s3) 0;
+  border-top: 1px solid var(--ink);
+}
+
+.bb-cert { margin: var(--s3) 0 0; font-size: 12px; }
+
+.bb-for { font-weight: 700; margin: var(--s2) 0 0; letter-spacing: 0.03em; }
+
+.bb-sign {
+  margin-top: 36px;
+  text-align: right;
+  font-size: 12px;
+}
+
+@media print {
+  .bb { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

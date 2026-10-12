@@ -1,12 +1,16 @@
 import { api } from "../api.js";
 import { money, kg, esc } from "../format.js";
 
+// Pre-print a saved value, or keep the dotted fill line when unset
+const fill = (value: string | null): string =>
+  value ? `<strong>${esc(value)}</strong>` : `<span class="bb-fill"></span>`;
+
 export async function render(): Promise<void> {
   const params = new URLSearchParams(window.location.search);
   const fixingId = params.get("fixingId");
 
   if (!fixingId) {
-    document.getElementById("app")!.innerHTML = `<div style="padding:20px;">No fixing ID provided.</div>`;
+    document.getElementById("app")!.innerHTML = `<div class="print-doc"><p>No fixing ID provided.</p></div>`;
     return;
   }
 
@@ -17,244 +21,151 @@ export async function render(): Promise<void> {
     const tcsAmt = data.tcsAmount || 0;
     const tdsAmt = data.tdsAmount || 0;
     const net = subtotal + tcsAmt - tdsAmt;
+    const COMPANY = data.company;
+    
+    document.title = `Bill of Supply · ${COMPANY.name}`;
 
-    const html = `
-      <style>
-        /* Print Styles */
-        @media print {
-          @page { size: A4 portrait; margin: 15mm; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: #fff !important; }
-          #app, .app { display: block !important; height: auto !important; overflow: visible !important; }
-          .sidebar, .topbar { display: none !important; }
-          .print-btn-container { display: none !important; }
-        }
+    const itemRows = `
+      <tr>
+        <td class="ctr">1</td>
+        <td><strong>${esc(data.lot.item.name)}</strong></td>
+        <td class="ctr">${esc(data.lot.item.hsnCode)}</td>
+        <td class="num">${kg(data.kg)}</td>
+        <td class="num">${money(data.rate)}</td>
+        <td class="num">${money(subtotal)}</td>
+        <td class="num">${money(subtotal)}</td>
+      </tr>` + Array.from({ length: 7 }, () => `
+      <tr>
+        <td class="ctr"></td>
+        <td></td>
+        <td class="ctr"></td>
+        <td class="num"></td>
+        <td class="num"></td>
+        <td class="num"></td>
+        <td class="num"></td>
+      </tr>`).join("");
 
-        .print-view-wrapper {
-          max-width: 800px;
-          margin: 0 auto;
-          background: #fff;
-          padding: 30px;
-          color: #000;
-          font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        @media print {
-          .print-view-wrapper {
-            box-shadow: none;
-            padding: 0;
-            max-width: none;
-          }
-        }
-
-        .print-header {
-          display: flex;
-          justify-content: space-between;
-          border-bottom: 2px solid #000;
-          padding-bottom: 15px;
-          margin-bottom: 20px;
-        }
-
-        .print-header-left h1 {
-          font-size: 24px;
-          margin: 0 0 5px 0;
-          text-transform: uppercase;
-        }
-
-        .print-header-left p, .print-header-right p {
-          margin: 2px 0;
-          font-size: 13px;
-        }
-
-        .print-header-right {
-          text-align: right;
-        }
-
-        .print-meta {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 30px;
-          font-size: 14px;
-        }
-
-        .print-meta-left p, .print-meta-right p {
-          margin: 4px 0;
-        }
-
-        .print-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-bottom: 30px;
-          font-size: 14px;
-        }
-
-        .print-table th, .print-table td {
-          border: 1px solid #000;
-          padding: 10px;
-          text-align: left;
-        }
-
-        .print-table th {
-          background-color: #f2f2f2;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-
-        .print-table .num {
-          text-align: right;
-        }
-
-        .print-totals {
-          display: flex;
-          justify-content: flex-end;
-          margin-bottom: 50px;
-        }
-
-        .print-totals-table {
-          border-collapse: collapse;
-          width: 300px;
-        }
-
-        .print-totals-table td {
-          padding: 6px 10px;
-          font-size: 14px;
-        }
-
-        .print-totals-table .totals-label {
-          font-weight: bold;
-        }
-
-        .print-totals-table .totals-val {
-          text-align: right;
-        }
-
-        .print-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-end;
-          margin-top: 50px;
-        }
-
-        .sign-box {
-          text-align: center;
-          font-size: 14px;
-        }
-
-        .sign-box-line {
-          border-top: 1px solid #000;
-          width: 200px;
-          margin-top: 50px;
-          padding-top: 10px;
-        }
-
-        .btn-print {
-          padding: 8px 16px;
-          background: #000;
-          color: #fff;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: 500;
-        }
-        .btn-print:hover {
-          background: #333;
-        }
-      </style>
-
-      <div class="print-btn-container" style="text-align:center; padding:20px; background:#f9fafb;">
-        <button class="btn-print" onclick="window.print()">Print Bill</button>
-        <button class="btn-print" style="background:#6b7280; margin-left:10px" onclick="window.history.back()">Back</button>
+    document.getElementById("app")!.innerHTML = `
+      <div class="print-bar no-print">
+        <button class="btn secondary" onclick="window.history.back()">Back</button>
+        <button class="btn gold" onclick="window.print()">Print Bill</button>
       </div>
 
-      <div class="print-view-wrapper">
-        <h2 style="text-align:center; text-transform:uppercase; margin-top:0; margin-bottom:20px; letter-spacing:2px; font-size:18px;">Bill of Supply</h2>
-        
-        <div class="print-header">
-          <div class="print-header-left">
-            <h1>${esc(data.company.name)}</h1>
-            <p><strong>${esc(data.company.tagline)}</strong></p>
-            <p>Address: ${esc(data.company.address)}</p>
+      <div class="print-doc bb">
+        <!-- Header band -->
+        <div class="bb-head">
+          <div><span class="bb-form-name">Bill of Supply</span></div>
+          <div class="bb-head-center">
+            <h1>${esc(COMPANY.name).toUpperCase()}</h1>
+            <p class="bb-tagline">${esc(COMPANY.tagline)}</p>
+            <p class="bb-addr">${esc(COMPANY.address)}</p>
           </div>
-          <div class="print-header-right">
-            <p><strong>GSTIN:</strong> ${esc(data.company.gstin)}</p>
-            <p><strong>Phone:</strong> ${esc(data.company.phone)}</p>
-            <p><strong>State:</strong> ${esc(data.company.state)}, <strong>Code:</strong> ${esc(data.company.stateCode)}</p>
+          <div class="bb-head-right">Phone : ${esc(COMPANY.phone)}</div>
+        </div>
+        <div class="bb-gstin">GSTIN : ${esc(COMPANY.gstin)}</div>
+
+        <!-- Top information: two ruled columns -->
+        <div class="bb-info">
+          <div>
+            <div class="bb-field"><span class="lbl">Serial Number :</span> <span class="bb-serial">${esc(data.billNo || "20")}</span> <span class="bb-fill"></span></div>
+            <div class="bb-field"><span class="lbl">Issue Date :</span> <strong>${esc(data.date)}</strong><span class="bb-fill" style="flex: 0"></span></div>
+            <div class="bb-inline-pair">
+              <div class="bb-field"><span class="lbl">State :</span> ${esc(COMPANY.state)}</div>
+              <div class="bb-field"><span class="lbl">State Code :</span> ${esc(COMPANY.stateCode)}</div>
+            </div>
+          </div>
+          <div>
+            <div class="bb-field"><span class="lbl">Transportation Mode :</span> <span class="bb-fill"></span></div>
+            <div class="bb-field"><span class="lbl">Vehicle No :</span> <span class="bb-fill"></span></div>
+            <div class="bb-field"><span class="lbl">Date &amp; Time of Supply :</span> <strong>${esc(data.date)}</strong><span class="bb-fill" style="flex: 0"></span></div>
+            <div class="bb-field"><span class="lbl">Place of Supply :</span> <strong>${esc(data.lot.party.place || "")}</strong><span class="bb-fill" style="flex: 0"></span></div>
           </div>
         </div>
 
-        <div class="print-meta">
-          <div class="print-meta-left">
-            <p><strong>Bill To:</strong></p>
-            <p><strong>${esc(data.lot.party.name)}</strong></p>
-            <p>${esc(data.lot.party.address || "")}</p>
-            ${data.lot.party.place ? `<p>${esc(data.lot.party.place)}</p>` : ''}
+        <!-- Details of receiver -->
+        <div class="bb-receiver">
+          <div class="bb-section-label">Details of Receiver (Billed to)</div>
+          <div class="bb-field"><span class="lbl">Name :</span> ${fill(data.lot.party.name)}</div>
+          <div class="bb-field"><span class="lbl">Address :</span> ${fill(data.lot.party.address)}</div>
+          <div class="bb-inline-pair">
+            <div class="bb-field"><span class="lbl">State :</span> ${fill(null)}</div>
+            <div class="bb-field"><span class="lbl">State Code :</span> ${fill(null)}</div>
+            <div class="bb-field"><span class="lbl">GSTIN :</span> ${fill(null)}</div>
           </div>
-          <div class="print-meta-right">
-            <p><strong>Bill No:</strong> ${esc(data.billNo || "—")}</p>
-            <p><strong>Date:</strong> ${esc(data.date)}</p>
+          <div class="bb-inline-pair">
+            <div class="bb-field"><span class="lbl">From :</span> <span class="bb-fill"></span></div>
+            <div class="bb-field"><span class="lbl">To :</span> <span class="bb-fill"></span></div>
           </div>
         </div>
 
-        <table class="print-table">
+        <!-- Product table -->
+        <table class="bb-table">
           <thead>
             <tr>
-              <th>S.No</th>
-              <th>Description of Goods</th>
-              <th>HSN Code</th>
-              <th class="num">Qty (Kg)</th>
-              <th class="num">Rate (₹)</th>
-              <th class="num">Amount (₹)</th>
+              <th>Sl. No.</th>
+              <th>Name of product</th>
+              <th>HSN</th>
+              <th>Qty in Kgs.</th>
+              <th>Rate</th>
+              <th>Amount</th>
+              <th>Total</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody>${itemRows}</tbody>
+          <tfoot>
             <tr>
-              <td>1</td>
-              <td>${esc(data.lot.item.name)}</td>
-              <td>${esc(data.lot.item.hsnCode)}</td>
-              <td class="num">${kg(data.kg)}</td>
-              <td class="num">${money(data.rate)}</td>
-              <td class="num">${money(subtotal)}</td>
+              <td></td>
+              <td>Total</td>
+              <td></td>
+              <td class="num"></td>
+              <td></td>
+              <td class="num"></td>
+              <td class="num"><strong>${money(subtotal)}</strong></td>
             </tr>
-          </tbody>
+          </tfoot>
         </table>
 
-        <div class="print-totals">
-          <table class="print-totals-table">
-            <tr>
-              <td class="totals-label">Sub Total</td>
-              <td class="totals-val">${money(subtotal)}</td>
-            </tr>
-            ${tcsAmt > 0 ? `
-            <tr>
-              <td class="totals-label">Add: TCS @ ${data.tcsRate}%</td>
-              <td class="totals-val">${money(tcsAmt)}</td>
-            </tr>` : ''}
-            ${tdsAmt > 0 ? `
-            <tr>
-              <td class="totals-label">Less: TDS @ ${data.tdsRate}%</td>
-              <td class="totals-val">${money(tdsAmt)}</td>
-            </tr>` : ''}
-            <tr style="border-top:2px solid #000; border-bottom:2px solid #000;">
-              <td class="totals-label" style="font-size:16px;">Total Amount</td>
-              <td class="totals-val" style="font-size:16px; font-weight:bold;">${money(net)}</td>
-            </tr>
-          </table>
-        </div>
+        <!-- Bottom summary -->
+        <div class="bb-bottom">
+          <section>
+            <div class="bb-words">
+              <span class="lbl"><strong>Total Amount in Words:</strong></span>
+              <span class="bb-fill"></span>
+              <span class="bb-fill"></span>
+            </div>
+            <div class="bb-bank">
+              <div class="bb-field"><span class="lbl">Bank Name :</span> ${fill(COMPANY.bankName)}</div>
+              <div class="bb-field"><span class="lbl">Bank A/c. No :</span> ${fill(COMPANY.bankAccount)}</div>
+              <div class="bb-field"><span class="lbl">Branch IFSC :</span> ${fill(COMPANY.bankIfsc)}</div>
+            </div>
+            <div class="bb-terms">
+              <div class="bb-terms-head">Terms &amp; Conditions</div>
+              <ol>
+                <li>Goods once sold will not be taken back or exchanged.</li>
+                <li>Subject to Wayanad jurisdiction only.</li>
+                <li>E. &amp; O.E.</li>
+              </ol>
+            </div>
+          </section>
 
-        <div class="print-footer">
-          <div class="sign-box">
-            <p>Receiver's Signature</p>
-          </div>
-          <div class="sign-box">
-            <p>For <strong>${esc(data.company.name)}</strong></p>
-            <div class="sign-box-line">Authorized Signatory</div>
-          </div>
+          <section class="bb-seal">
+            <div class="bb-seal-box">Seal</div>
+          </section>
+
+          <section>
+            <div class="bb-amounts">
+              <div class="bb-field"><span class="lbl">Total Amount :</span> <strong>${money(subtotal)}</strong><span class="bb-fill" style="flex: 0"></span></div>
+              <div class="bb-field"><span class="lbl">Less Discount :</span> <span class="bb-fill"></span></div>
+              <div class="bb-field bb-total-value"><span class="lbl">Total Value :</span> <strong>${money(net)}</strong><span class="bb-fill" style="flex: 0"></span></div>
+            </div>
+            <p class="bb-cert">Certified that the particulars given above are true and correct.</p>
+            <p class="bb-for">for, ${esc(COMPANY.name)}</p>
+            <p class="bb-sign">(Authorised Signatory)</p>
+          </section>
         </div>
       </div>
     `;
-
-    document.getElementById("app")!.innerHTML = html;
   } catch (err) {
-    document.getElementById("app")!.innerHTML = `<div style="padding:20px;color:red;">Error loading bill: ${esc(String(err))}</div>`;
+    document.getElementById("app")!.innerHTML = `<div class="print-doc"><p>Error loading bill: ${esc(String(err))}</p></div>`;
   }
 }

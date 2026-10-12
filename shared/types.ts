@@ -72,6 +72,69 @@ export interface FixingDTO {
   rate: string;
   notes: string | null;
   billNo?: string | null;
+  paymentId?: string | null;
+}
+
+export interface InvoiceLineDTO {
+  id: string;
+  fixingId: string | null;
+  description: string;
+  hsnCode: string;
+  kg: string;
+  rate: string;
+  amount: string;
+  cgstRate: string;
+  cgstAmount: string;
+  sgstRate: string;
+  sgstAmount: string;
+  lotNo: string | null;
+}
+
+export interface InvoiceDTO {
+  id: string;
+  billNo: string;
+  date: string;
+  kind: TradeType;
+  partyId: string;
+  partyName: string;
+  subtotal: string;
+  taxableValue: string;
+  cgstAmount: string;
+  sgstAmount: string;
+  tcsAmount: string;
+  tdsAmount: string;
+  roundOff: string;
+  total: string;
+  placeOfSupply: string | null;
+  notes: string | null;
+  paymentId: string | null;
+  paymentBillNo: string | null;
+  amountInWords: string;
+  company: CompanyInfoDTO;
+  lines: InvoiceLineDTO[];
+}
+
+/** One issued Bill of Supply — the digital-first ledger of priced trades. */
+export interface BillRecordDTO {
+  id: string;
+  billNo: string | null;
+  date: string;
+  kind: LotKind;
+  partyId: string;
+  partyName: string;
+  itemName: string;
+  hsnCode: string;
+  kg: string;
+  rate: string;
+  amount: string;
+  tcsRate: string | null;
+  tcsAmount: string | null;
+  tdsRate: string | null;
+  tdsAmount: string | null;
+  netAmount: string;
+  paid: boolean;
+  paymentBillNo: string | null;
+  paymentDate: string | null;
 }
 
 export interface PaymentDTO {
@@ -88,6 +151,7 @@ export interface PaymentDTO {
   fundName: string;
   billNo: string;
   itemId: string | null;
+  itemName?: string | null;
   priceKg: string | null;
   rate: string | null;
   method: string | null;
@@ -222,6 +286,19 @@ export interface PartyBill {
   realizedSales: PaymentDTO[];
   goodsOnFile: LotDTO[];
   fixings?: FixingDTO[];
+}
+
+export interface CompanyInfoDTO {
+  name: string;
+  tagline: string;
+  gstin: string;
+  address: string;
+  state: string;
+  stateCode: string;
+  phone: string;
+  bankName: string | null;
+  bankAccount: string | null;
+  bankIfsc: string | null;
 }
 
 export interface ApiError {

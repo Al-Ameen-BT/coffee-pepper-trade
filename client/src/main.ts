@@ -1,6 +1,8 @@
 import { api, getToken, setToken, clearToken } from "./api.js";
 import { esc } from "./format.js";
 import type { UserDTO } from "../../shared/types.js";
+// print.css is linked from index.html (not a JS import) so the strict CSP
+// style-src 'self' applies — Vite dev injects JS-imported CSS inline, which is blocked.
 
 // ─── Router ───────────────────────────────────────────────────────────────────
 
@@ -20,6 +22,10 @@ const routes: Record<string, RouteHandler> = {
   "/bills": () => import("./pages/bills.js").then((m) => m.render()),
   "/print-bill": () => import("./pages/print-bill.js").then((m) => m.render()),
   "/print-statement": () => import("./pages/print-statement.js").then((m) => m.render()),
+  "/bill-book": () => import("./pages/bill-book.js").then((m) => m.render()),
+  "/bill-register": () => import("./pages/bill-register.js").then((m) => m.render()),
+  "/invoice/new": () => import("./pages/invoice-new.js").then((m) => m.render()),
+  "/settings": () => import("./pages/settings.js").then((m) => m.render()),
 };
 
 function currentPath(): string {
@@ -37,28 +43,63 @@ export function routerNavigate(path: string): void {
 
 // ─── App shell ────────────────────────────────────────────────────────────────
 
-const NAV_LINKS = [
-  { path: "/", label: "Dashboard" },
-  { path: "/parties", label: "Parties" },
-  { path: "/purchases", label: "Purchases" },
-  { path: "/sales", label: "Sales" },
-  { path: "/statements", label: "Financial Statements" },
-  { path: "/payments", label: "Payments" },
-  { path: "/other-txn", label: "Other Expense / Income" },
-  { path: "/funds", label: "Cash & Bank" },
-  { path: "/loans", label: "Loans & Advances" },
-  { path: "/ledger", label: "Personal Ledger" },
-  { path: "/bills", label: "Bills & Print" },
+const NAV_GROUPS: { label: string | null; links: { path: string; label: string }[] }[] = [
+  { label: null, links: [{ path: "/", label: "Dashboard" }] },
+  {
+    label: "Trade",
+    links: [
+      { path: "/purchases", label: "Purchases" },
+      { path: "/sales", label: "Sales" },
+    ],
+  },
+  {
+    label: "Money",
+    links: [
+      { path: "/payments", label: "Trade Payments" },
+      { path: "/funds", label: "Cash & Bank" },
+      { path: "/loans", label: "Loans & Advances" },
+      { path: "/other-txn", label: "Other Expense / Other Income" },
+    ],
+  },
+  {
+    label: "People",
+    links: [
+      { path: "/parties", label: "Parties" },
+      { path: "/ledger", label: "Personal Ledger" },
+    ],
+  },
+  {
+    label: "Reports",
+    links: [
+      { path: "/bill-register", label: "Bill Register" },
+      { path: "/statements", label: "Financial Statements" },
+      { path: "/bills", label: "Party Statements" },
+    ],
+  },
+  {
+    label: "System",
+    links: [{ path: "/settings", label: "Company Settings" }],
+  },
 ];
 
 export function renderShell(content: string): void {
   const path = currentPath();
-  const nav = NAV_LINKS.map(
-    (l) => `<a href="${l.path}" class="${path === l.path ? "active" : ""}" data-nav="${l.path}">${l.label}</a>`,
-  ).join("");
+  const nav = NAV_GROUPS.map((g) => {
+    const links = g.links
+      .map(
+        (l) =>
+          `<a href="${l.path}" class="${path === l.path ? "active" : ""}" ${path === l.path ? 'aria-current="page"' : ""} data-nav="${l.path}">${l.label}</a>`,
+      )
+      .join("");
+    return g.label ? `<div class="nav-label" aria-hidden="true">${g.label}</div>${links}` : links;
+  }).join("");
+
+  const active = NAV_GROUPS.flatMap((g) => g.links).find((l) => l.path === path);
+  document.title = active ? `${active.label} · Uzhunnungal Traders` : "Uzhunnungal Traders";
 
   document.getElementById("app")!.innerHTML = `
     <div class="app">
+      <a href="#page" class="skip-link">Skip to content</a>
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-mark">CP</div>
@@ -67,10 +108,10 @@ export function renderShell(content: string): void {
             <p>Hill Produce Dealer · Coffee · Black Pepper</p>
           </div>
         </div>
-        <nav>${nav}</nav>
+        <nav aria-label="Main navigation">${nav}</nav>
         <div class="sidebar-footer">
           <button id="logout-btn" class="logout-btn" type="button" title="Log out of application">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
               <polyline points="16 17 21 12 16 7"></polyline>
               <line x1="21" y1="12" x2="9" y2="12"></line>
@@ -79,7 +120,7 @@ export function renderShell(content: string): void {
           </button>
         </div>
       </aside>
-      <main class="main" id="page">${content}</main>
+      <main class="main" id="page" tabindex="-1">${content}</main>
     </div>
   `;
 
@@ -109,12 +150,34 @@ export function toast(message: string, type: "success" | "error" | "info" = "inf
   }
   const el = document.createElement("div");
   el.className = `toast ${type}`;
-  el.textContent = message;
+  // Errors assert themselves and stay until dismissed; success/info are polite and fade.
+  el.setAttribute("role", type === "error" ? "alert" : "status");
+  const text = document.createElement("span");
+  text.textContent = message;
+  el.appendChild(text);
+  if (type === "error") {
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "toast-close";
+    close.setAttribute("aria-label", "Dismiss error");
+    close.textContent = "×";
+    close.addEventListener("click", () => el.remove());
+    el.appendChild(close);
+  } else {
+    setTimeout(() => el.remove(), 4000);
+  }
   container.appendChild(el);
-  setTimeout(() => el.remove(), 4000);
 }
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
+
+let modalLastFocused: HTMLElement | null = null;
+
+function modalFocusables(modal: HTMLElement): HTMLElement[] {
+  return Array.from(
+    modal.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'),
+  ).filter((el) => !el.hasAttribute("disabled"));
+}
 
 export function openModal(html: string): void {
   let bg = document.getElementById("global-modal-bg") as HTMLElement | null;
@@ -132,16 +195,47 @@ export function openModal(html: string): void {
     });
   }
 
+  modalLastFocused = document.activeElement as HTMLElement | null;
+
   bg.innerHTML = `
-    <div class="modal">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:-10px;position:relative;z-index:10;">
-        <button type="button" class="modal-close-x" style="background:none;border:none;font-size:24px;line-height:1;cursor:pointer;color:var(--muted);padding:4px 8px;" title="Close (Esc)">&times;</button>
-      </div>
+    <div class="modal" role="dialog" aria-modal="true">
+      <button type="button" class="modal-close-x" aria-label="Close dialog" title="Close (Esc)">&times;</button>
       ${html}
     </div>
   `;
   bg.classList.add("open");
   bg.style.display = "grid";
+
+  const modal = bg.querySelector(".modal") as HTMLElement;
+
+  // Name the dialog from its heading when one exists
+  const heading = modal.querySelector("h3");
+  if (heading) {
+    if (!heading.id) heading.id = "modal-title";
+    modal.setAttribute("aria-labelledby", heading.id);
+  } else {
+    modal.setAttribute("aria-label", "Dialog");
+  }
+
+  // Focus trap: keep Tab cycling inside the dialog
+  bg.onkeydown = (e) => {
+    if (e.key !== "Tab") return;
+    const focusables = modalFocusables(modal);
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && (document.activeElement === first || !modal.contains(document.activeElement))) {
+      last.focus();
+      e.preventDefault();
+    } else if (!e.shiftKey && (document.activeElement === last || !modal.contains(document.activeElement))) {
+      first.focus();
+      e.preventDefault();
+    }
+  };
+
+  // Initial focus: first field, else first focusable
+  const initial = modal.querySelector<HTMLElement>("input:not([type=hidden]), select, textarea") ?? modalFocusables(modal)[0];
+  initial?.focus();
 
   // Bind close to all close and cancel buttons in the modal
   bg.querySelectorAll("button").forEach((btn) => {
@@ -168,14 +262,20 @@ export function closeModal(): void {
   document.querySelectorAll(".modal-bg").forEach((m) => {
     m.classList.remove("open");
     (m as HTMLElement).style.display = "none";
+    (m as HTMLElement).onkeydown = null;
     m.innerHTML = "";
   });
   const bg = document.getElementById("global-modal-bg");
   if (bg) {
     bg.classList.remove("open");
     bg.style.display = "none";
+    bg.onkeydown = null;
     bg.innerHTML = "";
   }
+  if (modalLastFocused && document.contains(modalLastFocused)) {
+    modalLastFocused.focus();
+  }
+  modalLastFocused = null;
 }
 
 // Expose to global window object for inline onclick handlers (e.g. onclick="closeModal()" or onclick="window.closeModal()")
@@ -231,9 +331,26 @@ async function render(): Promise<void> {
     return;
   }
 
-  const handler = routes[path] || routes["/"];
   try {
-    await handler();
+    // Shareable digital bill: /bill/<id>
+    if (path.startsWith("/bill/")) {
+      const { render: renderDigitalBill } = await import("./pages/digital-bill.js");
+      await renderDigitalBill();
+      return;
+    }
+
+    // Shareable multi-line invoice: /invoice/<id>
+    if (path.startsWith("/invoice/")) {
+      const { render: renderInvoice } = await import("./pages/invoice.js");
+      await renderInvoice();
+      return;
+    }
+
+    const handler = routes[path];
+    if (!handler) {
+      window.history.replaceState({}, "", "/");
+    }
+    await (handler ?? routes["/"])();
   } catch (err) {
     console.error("Render error:", err);
     renderShell(`<div class="card"><h3>Error loading page</h3><p>${esc(String(err))}</p></div>`);

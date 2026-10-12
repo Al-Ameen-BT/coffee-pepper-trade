@@ -73,6 +73,13 @@ export async function render(): Promise<void> {
       ? `We owe them ${money(ledger.net)} (to pay)`
       : `They owe us ${money(ledger.net)} (to receive)`;
 
+  const netNum = Number(ledger.net);
+  const closingBalance = ledger.settled
+    ? "—"
+    : netNum >= 0
+      ? `${money(netNum)} Dr`
+      : `${money(-netNum)} Cr`;
+
   renderShell(`
     <div class="topbar">
       <div>
@@ -80,18 +87,20 @@ export async function render(): Promise<void> {
         <p>Outstanding is cash-basis: only Payments count as realized purchases and sales.</p>
       </div>
     </div>
-    <div class="card" style="margin-bottom:16px">
+    <div class="card">
       <h3>All parties and outstanding</h3>
-      <table>
-        <thead><tr><th>Party</th><th>Place</th><th>Role</th>${items.map((it) => `<th class="num">${esc(it.name)} bought</th><th class="num">${esc(it.name)} sold</th>`).join("")}<th>Outstanding</th></tr></thead>
+      <div class="table-wrap">
+      <table class="party-list">
+        <thead><tr><th scope="col">Party</th><th scope="col">Place</th><th scope="col">Role</th>${items.map((it) => `<th scope="col" class="num">${esc(it.name)} bought</th><th scope="col" class="num">${esc(it.name)} sold</th>`).join("")}<th scope="col">Outstanding</th></tr></thead>
         <tbody>${partyRows}</tbody>
       </table>
+      </div>
     </div>
     <div class="ledger-head">
       <div class="card">
         <h3>Party details</h3>
-        <p class="metric" style="font-size:26px">${esc(ledger.party.name)}</p>
-        <p style="color:var(--muted);margin:8px 0 0">
+        <p class="metric">${esc(ledger.party.name)}</p>
+        <p class="note">
           ${esc(ledger.party.role)} · ${esc(ledger.party.place || "Place not set")}<br>
           ${esc(ledger.party.address || "Address not set")}<br>
           ${esc(ledger.party.phone || "Phone not set")}
@@ -100,20 +109,21 @@ export async function render(): Promise<void> {
       <div class="card due-box ${ledger.settled ? "ok" : ledger.net.startsWith("-") ? "pay" : "receive"}">
         <h3>Outstanding (cash)</h3>
         <p class="metric">${dueText}</p>
-        <p style="color:var(--muted);margin:8px 0 0;font-size:13px">
+        <p class="note">
           Cash outflow (payments made): ${money(ledger.totalPaid)}<br>
           Cash inflow (payments received): ${money(ledger.totalReceived)}
         </p>
       </div>
       <div class="card">
         <h3>Unpriced weight still pending</h3>
-        ${items.map((it) => `<div class="weight-box" style="margin-top:8px"><span class="tag ${it.slug === "pepper" ? "pepper" : ""}">${esc(it.name)}</span><strong>${kg(ledger.unpricedByItem[it.id] || 0)}</strong></div>`).join("")}
+        ${items.map((it) => `<div class="weight-box"><span class="tag ${it.slug === "pepper" ? "pepper" : ""}">${esc(it.name)}</span><strong>${kg(ledger.unpricedByItem[it.id] || 0)}</strong></div>`).join("")}
       </div>
     </div>
-    <div class="card" style="margin-bottom:16px">
+    <div class="card">
       <h3>Quantities bought from / sold to ${esc(ledger.party.name)}</h3>
+      <div class="table-wrap">
       <table>
-        <thead><tr><th>Item</th><th class="num">Bought from them (kg)</th><th class="num">Sold to them (kg)</th><th class="num">Unpriced pending (kg)</th></tr></thead>
+        <thead><tr><th scope="col">Item</th><th scope="col" class="num">Bought from them (kg)</th><th scope="col" class="num">Sold to them (kg)</th><th scope="col" class="num">Unpriced pending (kg)</th></tr></thead>
         <tbody>
           ${items.map((it) => {
             const c = ledger.quantitiesByItem[it.id] || { boughtKg: "0", soldKg: "0" };
@@ -121,60 +131,63 @@ export async function render(): Promise<void> {
           }).join("")}
         </tbody>
       </table>
+      </div>
     </div>
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="card-head">
         <h3>Account statement</h3>
-        <form class="date-filter" style="display:flex;gap:8px;align-items:center;">
+        <form class="date-filter">
           <input type="hidden" name="party" value="${esc(selected.id)}">
-          <input type="date" name="startDate" value="${esc(startDate)}">
+          <input type="date" name="startDate" value="${esc(startDate)}" aria-label="Start date">
           <span>to</span>
-          <input type="date" name="endDate" value="${esc(endDate)}">
+          <input type="date" name="endDate" value="${esc(endDate)}" aria-label="End date">
           <button type="submit" class="btn">Filter</button>
-          <button type="button" class="btn" id="export-csv">Export to CSV</button>
+          <button type="button" class="btn secondary" id="export-csv">Export to CSV</button>
+          <button type="button" class="btn secondary" onclick="window.print()">Print / Save PDF</button>
         </form>
       </div>
+      <div class="table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Particulars</th><th class="num">Debit</th><th class="num">Credit</th><th class="num">Running balance</th></tr></thead>
+        <thead><tr><th scope="col">Date</th><th scope="col">Particulars</th><th scope="col" class="num">Debit</th><th scope="col" class="num">Credit</th><th scope="col" class="num">Running balance</th></tr></thead>
         <tbody>
           ${ledgerRows}
-          <tr><td></td><td><strong>Closing outstanding</strong></td><td class="num"><strong>${money(ledger.totalPaid)}</strong></td><td class="num"><strong>${money(ledger.totalReceived)}</strong></td><td class="num"><strong>${dueText}</strong></td></tr>
+          <tr><td></td><td><strong>Closing outstanding</strong></td><td class="num"><strong>${money(ledger.totalPaid)}</strong></td><td class="num"><strong>${money(ledger.totalReceived)}</strong></td><td class="num"><strong>${closingBalance}</strong></td></tr>
         </tbody>
       </table>
+      </div>
     </div>
   `);
 
-  setTimeout(() => {
-    document.querySelector(".date-filter")?.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const fd = new FormData(e.target as HTMLFormElement);
-      const s = fd.get("startDate") as string;
-      const en = fd.get("endDate") as string;
-      const url = new URL(window.location.href);
-      if (s) url.searchParams.set("startDate", s);
-      else url.searchParams.delete("startDate");
-      if (en) url.searchParams.set("endDate", en);
-      else url.searchParams.delete("endDate");
-      window.history.pushState({}, "", url);
-      window.dispatchEvent(new Event("popstate"));
-    });
+  document.querySelector(".date-filter")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target as HTMLFormElement);
+    const s = fd.get("startDate") as string;
+    const en = fd.get("endDate") as string;
+    const url = new URL(window.location.href);
+    if (s) url.searchParams.set("startDate", s);
+    else url.searchParams.delete("startDate");
+    if (en) url.searchParams.set("endDate", en);
+    else url.searchParams.delete("endDate");
+    window.history.pushState({}, "", url);
+    window.dispatchEvent(new Event("popstate"));
+  });
 
-    document.getElementById("export-csv")?.addEventListener("click", () => {
-      let csv = "Date,Particulars,Debit,Credit,Running Balance\\n";
-      for (const r of ledger.rows) {
-        const balNum = Number(r.balance);
-        const balStr = balNum >= 0 ? r.balance + " Dr" : (-balNum).toFixed(2) + " Cr";
-        csv += `"${r.date}","${r.particular.replace(/"/g, '""')}","${r.debit !== "0" ? r.debit : ""}","${r.credit !== "0" ? r.credit : ""}","${balStr}"\n`;
-      }
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", `ledger_${selected.name}_${new Date().toISOString().slice(0, 10)}.csv`);
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    });
-  }, 0);
+  document.getElementById("export-csv")?.addEventListener("click", () => {
+    let csv = "Date,Particulars,Debit,Credit,Running Balance\n";
+    for (const r of ledger.rows) {
+      const balNum = Number(r.balance);
+      const balStr = balNum >= 0 ? r.balance + " Dr" : (-balNum).toFixed(2) + " Cr";
+      csv += `"${r.date}","${r.particular.replace(/"/g, '""')}","${r.debit !== "0" ? r.debit : ""}","${r.credit !== "0" ? r.credit : ""}","${balStr}"\n`;
+    }
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `ledger_${selected.name}_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  });
 }

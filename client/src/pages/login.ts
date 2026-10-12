@@ -7,17 +7,17 @@ export function renderLogin(): void {
       <div class="login-box">
         <h1>Uzhunnungal Traders</h1>
         <p>Coffee · Black Pepper trading management</p>
-        <div id="login-error" class="alert error" style="display:none;margin-bottom:16px;padding:10px 14px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:8px;font-size:13px;line-height:1.4;"></div>
+        <div id="login-error" class="alert error" role="alert" hidden></div>
         <form id="login-form" class="stack">
           <!-- Honeypot anti-bot field (invisible to users, filled by automated bots) -->
-          <input type="text" name="hp_field" tabindex="-1" autocomplete="off" aria-hidden="true" style="opacity:0;position:absolute;top:0;left:0;height:0;width:0;z-index:-1;pointer-events:none;">
+          <input type="text" name="hp_field" tabindex="-1" autocomplete="off" aria-hidden="true" class="hp-field">
           <label>Email
             <input required type="email" name="email" placeholder="Enter your email" autocomplete="email">
           </label>
           <label>Password
             <input required type="password" name="password" placeholder="Enter password" autocomplete="current-password">
           </label>
-          <button class="btn gold" type="submit" style="width:100%;margin-top:8px;">Sign In</button>
+          <button class="btn gold block" type="submit">Sign In</button>
         </form>
       </div>
     </div>
@@ -29,7 +29,7 @@ export function renderLogin(): void {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (errBox) {
-      errBox.style.display = "none";
+      errBox.hidden = true;
       errBox.textContent = "";
     }
 
@@ -39,7 +39,7 @@ export function renderLogin(): void {
       // Bot detected via honeypot
       if (errBox) {
         errBox.textContent = "Automated submission rejected.";
-        errBox.style.display = "block";
+        errBox.hidden = false;
       }
       return;
     }
@@ -59,9 +59,7 @@ export function renderLogin(): void {
       const msg = err instanceof Error ? err.message : "Login failed";
       if (errBox) {
         errBox.textContent = msg;
-        errBox.style.display = "block";
-      } else {
-        alert(msg);
+        errBox.hidden = false;
       }
     } finally {
       if (submitBtn) {

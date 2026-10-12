@@ -1,5 +1,5 @@
 import { api } from "../api.js";
-import { esc, kg, money, today } from "../format.js";
+import { esc, kg, money, today, fundType } from "../format.js";
 import { renderShell, toast, openModal, closeModal } from "../main.js";
 import type { LotDTO, PartyDTO, ItemDTO } from "../../../shared/types.js";
 
@@ -16,7 +16,7 @@ export async function render(): Promise<void> {
         <td>${l.date}</td>
         <td>${esc(l.partyName)}</td>
         <td><span class="tag ${l.itemName === "Black Pepper" ? "pepper" : ""}">${esc(l.itemName)}</span></td>
-        <td class="num">${l.bagCount ? `<small style="color:var(--muted)">${l.bagCount} bags · </small>` : ""}${kg(l.totalKg)}</td>
+        <td class="num">${l.bagCount ? `<small class="muted">${l.bagCount} bags · </small>` : ""}${kg(l.totalKg)}</td>
         <td class="num">${kg(l.pricedKg)}</td>
         <td class="num pending">${kg(l.unpricedKg)}</td>
         <td class="num">${money(l.fixingValue)}</td>
@@ -34,16 +34,18 @@ export async function render(): Promise<void> {
       <button class="btn" id="add-btn">New purchase</button>
     </div>
     <div class="card">
+      <div class="table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Party</th><th>Item</th><th class="num">Net Weight</th><th class="num">Priced</th><th class="num">Pending</th><th class="num">Value</th><th></th></tr></thead>
+        <thead><tr><th scope="col">Date</th><th scope="col">Party</th><th scope="col">Item</th><th scope="col" class="num">Net Weight</th><th scope="col" class="num">Priced</th><th scope="col" class="num">Pending</th><th scope="col" class="num">Value</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
+      </div>
     </div>
   `);
 
   document.getElementById("add-btn")!.addEventListener("click", () => {
     openModal(`
-      <h3 style="font-family:Fraunces,serif;font-size:22px;margin:0 0 12px">New Purchase Lot</h3>
+      <h3 class="modal-title">New Purchase Lot</h3>
       <form class="stack" id="lot-form">
         <div class="row">
           <label>Date <input required type="date" name="date" value="${today()}"></label>
@@ -136,8 +138,8 @@ export async function render(): Promise<void> {
       const lotId = (btn as HTMLElement).dataset.fix!;
       const lot = lots.find((l) => l.id === lotId)!;
       openModal(`
-        <h3 style="font-family:Fraunces,serif;font-size:22px;margin:0 0 8px">Price fixing tranche</h3>
-        <p style="margin:0 0 12px;color:var(--muted)">${lot.billNo} · ${esc(lot.partyName)} · ${esc(lot.itemName)} · pending ${kg(lot.unpricedKg)}</p>
+        <h3 class="modal-title">Price fixing tranche</h3>
+        <p class="note">${lot.billNo} · ${esc(lot.partyName)} · ${esc(lot.itemName)} · pending ${kg(lot.unpricedKg)}</p>
         <form class="stack" id="fix-form">
           <div class="row3">
             <label>Date <input required type="date" name="date" value="${today()}"></label>
@@ -163,7 +165,7 @@ export async function render(): Promise<void> {
       // Load funds
       api.get("/funds").then((funds: any) => {
         const sel = document.getElementById("fix-fund") as HTMLSelectElement;
-        sel.innerHTML = funds.map((f: any) => `<option value="${f.id}">${esc(f.name)} (${f.type})</option>`).join("");
+        sel.innerHTML = funds.map((f: any) => `<option value="${f.id}">${esc(f.name)} · ${fundType(f.type)}</option>`).join("");
       });
 
       document.getElementById("fix-form")!.addEventListener("submit", async (e) => {
