@@ -5,6 +5,7 @@ import { requireAuth } from "../../auth/middleware.js";
 import { ApiError } from "../../lib/errorHandler.js";
 import { applyPricingQty, unpricedKg } from "../../lib/compute.js";
 import { getNextBillNo } from "../../lib/billSequence.js";
+import { computeTCS } from "../../lib/tax.js";
 import type { PaymentDTO } from "../../../shared/types.js";
 
 export const paymentsRouter = Router();
@@ -17,12 +18,15 @@ const paymentSchema = z.object({
   advanceDeducted: z.number().nonnegative().optional(),
   grossAmount: z.number().positive().optional(),
   billNo: z.string().optional(),
-  direction: z.enum(["PAY", "RECEIVE"]),
+  // Optional — derived from tradeType below (PURCHASE→PAY, SALE→RECEIVE) when omitted
+  direction: z.enum(["PAY", "RECEIVE"]).optional(),
   tradeType: z.enum(["PURCHASE", "SALE"]),
   fundId: z.string().min(1),
   itemId: z.string().optional(),
   priceKg: z.number().positive().optional(),
   rate: z.number().positive().optional(),
+  tcsRate: z.number().nonnegative().optional(),
+  tdsRate: z.number().nonnegative().optional(),
   method: z.string().optional(),
   notes: z.string().optional(),
   advanceDeductions: z.array(z.object({
@@ -51,6 +55,7 @@ function toDTO(p: {
   };
 }
 
+
 const include = { party: true, fund: true } as const;
 
 paymentsRouter.get("/", async (req, res, next) => {
@@ -66,6 +71,16 @@ paymentsRouter.get("/", async (req, res, next) => {
     });
     res.json(payments.map(toDTO));
   } catch (err) { next(err); }
+});
+
+paymentsRouter.get("/:id", async (req, res, next) => {
+  try {
+    const payment = await prisma.payment.findUnique({ where: { id: req.params.id }, include });
+    if (!payment) throw new ApiError(404, "Payment not found");
+    res.json(toDTO(payment as any));
+  } catch (err) {
+    next(err);
+  }
 });
 
 paymentsRouter.post("/", async (req, res, next) => {
@@ -91,6 +106,30 @@ paymentsRouter.post("/", async (req, res, next) => {
     const direction = data.direction || (data.tradeType === "PURCHASE" ? "PAY" : "RECEIVE");
     const billNo = data.billNo || await getNextBillNo(direction === "PAY" ? "PAY" : "REC");
 
+    // Work out how the quantity spreads across pending lots, and reserve a
+    // numbered bill for each resulting fixing. Allocated outside the
+    // transaction because getNextBillNo does its own write.
+    let pricingPlan: { lotId: string; kg: number; billNo: string }[] | null = null;
+    if (data.priceKg && data.priceKg > 0 && data.rate) {
+      const lots = await prisma.lot.findMany({
+        where: { partyId: data.partyId, kind: data.tradeType, ...(data.itemId ? { itemId: data.itemId } : {}) },
+        include: { fixings: true },
+        orderBy: { date: "asc" },
+      });
+      const result = applyPricingQty(lots as any, {
+        partyId: data.partyId, kind: data.tradeType, itemId: data.itemId,
+        kg: data.priceKg, rate: data.rate,
+      });
+      if (result.leftover > 0.0001) {
+        throw new ApiError(400, `Only part of the quantity could be priced. ${result.leftover.toFixed(3)} kg could not be allocated.`);
+      }
+      const prefix = data.tradeType === "PURCHASE" ? "PUR" : "SAL";
+      pricingPlan = [];
+      for (const alloc of result.allocated) {
+        pricingPlan.push({ lotId: alloc.lotId, kg: alloc.kg, billNo: await getNextBillNo(prefix) });
+      }
+    }
+
     const payment = await prisma.$transaction(async (tx) => {
       // Validate advance deductions if provided
       let totalAdvanceDeducted = 0;
@@ -108,30 +147,28 @@ paymentsRouter.post("/", async (req, res, next) => {
         }
       }
 
-      // Apply pricing if kg specified
-      if (data.priceKg && data.priceKg > 0 && data.rate) {
-        const lots = await tx.lot.findMany({
-          where: { partyId: data.partyId, kind: data.tradeType, ...(data.itemId ? { itemId: data.itemId } : {}) },
-          include: { fixings: true },
-          orderBy: { date: "asc" },
-        });
-        const result = applyPricingQty(lots as any, {
-          partyId: data.partyId, kind: data.tradeType, itemId: data.itemId,
-          kg: data.priceKg, rate: data.rate,
-        });
-        for (const alloc of result.allocated) {
-          await tx.fixing.create({
-            data: { 
-              lotId: alloc.lotId, 
-              date: new Date(data.date), 
-              kg: alloc.kg, 
-              rate: data.rate!, 
-              notes: `Priced with payment ${billNo}` 
+      // Create one numbered, tax-treated bill per allocation
+      const createdFixingIds: string[] = [];
+      if (pricingPlan) {
+        for (const alloc of pricingPlan) {
+          const fixingValue = alloc.kg * data.rate!;
+          const tcs = await computeTCS(tx, data.partyId, new Date(data.date), fixingValue, data.tcsRate ?? null);
+          const tdsAmount = data.tdsRate ? (fixingValue * data.tdsRate) / 100 : 0;
+          const createdFixing = await tx.fixing.create({
+            data: {
+              lotId: alloc.lotId,
+              date: new Date(data.date),
+              kg: alloc.kg,
+              rate: data.rate!,
+              tcsRate: tcs.tcsRate,
+              tcsAmount: tcs.tcsAmount,
+              tdsRate: data.tdsRate || null,
+              tdsAmount: tdsAmount || null,
+              billNo: alloc.billNo,
+              notes: `Priced with payment ${billNo}`,
             },
           });
-        }
-        if (result.leftover > 0.0001) {
-          throw new ApiError(400, `Only part of the quantity could be priced. ${result.leftover.toFixed(3)} kg could not be allocated.`);
+          createdFixingIds.push(createdFixing.id);
         }
       }
 
@@ -150,6 +187,11 @@ paymentsRouter.post("/", async (req, res, next) => {
         },
         include,
       });
+
+      // Bills priced by this payment are settled by it
+      for (const fixingId of createdFixingIds) {
+        await tx.fixing.update({ where: { id: fixingId }, data: { paymentId: createdPayment.id } });
+      }
 
       // Adjust loans and record AdvanceAdjustment links
       if (data.advanceDeductions && data.advanceDeductions.length > 0) {

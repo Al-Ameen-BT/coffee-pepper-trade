@@ -48,16 +48,16 @@ async function main() {
 
   // Create default items
   const defaultItems = [
-    { name: "Cherry Coffee", slug: "cherry-coffee" },
-    { name: "Coffee Beans", slug: "coffee-beans" },
-    { name: "Coffee", slug: "coffee" },
-    { name: "Black Pepper", slug: "pepper" },
+    { name: "Cherry Coffee", slug: "cherry-coffee", hsnCode: "0901", cgstRate: 5 },
+    { name: "Coffee Beans", slug: "coffee-beans", hsnCode: "0901", cgstRate: 5 },
+    { name: "Coffee", slug: "coffee", hsnCode: "0901", cgstRate: 5 },
+    { name: "Black Pepper", slug: "pepper", hsnCode: "0904", cgstRate: 5 },
   ];
 
   for (const item of defaultItems) {
     await prisma.item.upsert({
       where: { slug: item.slug },
-      update: {},
+      update: { hsnCode: item.hsnCode, cgstRate: item.cgstRate },
       create: item,
     });
   }
@@ -273,6 +273,23 @@ async function main() {
     ],
   });
   console.log("Created loans");
+
+  // Company identity (printed on bills & statements) — editable later in Company Settings
+  const existingCompany = await prisma.companyInfo.findFirst();
+  if (!existingCompany) {
+    await prisma.companyInfo.create({
+      data: {
+        name: "UZHUNNUNGAL TRADERS",
+        tagline: "Hill Produce Dealer",
+        gstin: "32APFPJ6004B1ZP",
+        address: "KARIAMBADI P.O., WAYANAD DT., KERALA - 673591",
+        state: "Kerala",
+        stateCode: "32",
+        phone: "9447204847",
+      },
+    });
+    console.log("Created company info");
+  }
 
   console.log("Seed complete!");
   console.log("Login with: admin@uzhunnungal.com / admin12345");

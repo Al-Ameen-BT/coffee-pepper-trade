@@ -40,14 +40,66 @@ model Party {
   lots      Lot[]
   payments  Payment[]
   loans     Loan[]
+  invoices  Invoice[]
 }
 
 model Item {
-  id    String @id @default(cuid())
-  name  String @unique
-  slug  String @unique
-  lots  Lot[]
-  loans Loan[]
+  id       String @id @default(cuid())
+  name     String @unique
+  slug     String @unique
+  hsnCode  String @default("")
+  cgstRate Float  @default(0)
+  lots     Lot[]
+  loans    Loan[]
+}
+
+/// One invoice = one payment. Header for a multi-line Bill of Supply.
+model Invoice {
+  id            String   @id @default(cuid())
+  billNo        String   @unique
+  date          DateTime
+  kind          TradeType
+  partyId       String
+  party         Party    @relation(fields: [partyId], references: [id])
+  subtotal      Float
+  taxableValue  Float
+  cgstAmount    Float    @default(0)
+  sgstAmount    Float    @default(0)
+  tcsAmount     Float    @default(0)
+  tdsAmount     Float    @default(0)
+  roundOff      Float    @default(0)
+  total         Float
+  placeOfSupply String?
+  notes         String?
+  paymentId     String?  @unique
+  payment       Payment? @relation(fields: [paymentId], references: [id])
+  lines         InvoiceLine[]
+  createdAt     DateTime @default(now())
+
+  @@index([partyId])
+  @@index([date])
+}
+
+/// Invoice line — each line keeps its link to the Fixing that priced the lot.
+model InvoiceLine {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  fixingId    String?  @unique
+  fixing      Fixing?  @relation(fields: [fixingId], references: [id])
+  description String
+  hsnCode     String
+  kg          Float
+  rate        Float
+  amount      Float
+  cgstRate    Float   @default(0)
+  cgstAmount  Float   @default(0)
+  sgstRate    Float   @default(0)
+  sgstAmount  Float   @default(0)
+  lotNo       String?
+
+  @@index([invoiceId])
+  @@index([fixingId])
 }
 
 model Fund {
@@ -102,9 +154,13 @@ model Fixing {
   tdsAmount Float?
   billNo    String?  @unique
   notes     String?
+  paymentId String?
+  payment   Payment? @relation(fields: [paymentId], references: [id])
+  invoiceLine InvoiceLine?
   createdAt DateTime @default(now())
 
   @@index([lotId])
+  @@index([paymentId])
 }
 
 model Payment {
@@ -128,6 +184,8 @@ model Payment {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   adjustments     AdvanceAdjustment[]
+  billedFixings   Fixing[]
+  invoice         Invoice?
 
   @@index([partyId])
   @@index([fundId])

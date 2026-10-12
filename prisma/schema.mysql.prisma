@@ -40,21 +40,73 @@ model Party {
   lots      Lot[]
   payments  Payment[]
   loans     Loan[]
+  invoices  Invoice[]
 }
 
 model Item {
-  id    String @id @default(cuid())
-  name  String @unique
-  slug  String @unique
-  lots  Lot[]
-  loans Loan[]
+  id       String @id @default(cuid())
+  name     String @unique
+  slug     String @unique
+  hsnCode  String @default("")
+  cgstRate Float  @default(0)
+  lots     Lot[]
+  loans    Loan[]
+}
+
+/// One invoice = one payment. Header for a multi-line Bill of Supply.
+model Invoice {
+  id            String   @id @default(cuid())
+  billNo        String   @unique
+  date          DateTime
+  kind          TradeType
+  partyId       String
+  party         Party    @relation(fields: [partyId], references: [id])
+  subtotal      Float
+  taxableValue  Float
+  cgstAmount    Float    @default(0)
+  sgstAmount    Float    @default(0)
+  tcsAmount     Float    @default(0)
+  tdsAmount     Float    @default(0)
+  roundOff      Float    @default(0)
+  total         Float
+  placeOfSupply String?
+  notes         String?
+  paymentId     String?  @unique
+  payment       Payment? @relation(fields: [paymentId], references: [id])
+  lines         InvoiceLine[]
+  createdAt     DateTime @default(now())
+
+  @@index([partyId])
+  @@index([date])
+}
+
+/// Invoice line — each line keeps its link to the Fixing that priced the lot.
+model InvoiceLine {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  fixingId    String?  @unique
+  fixing      Fixing?  @relation(fields: [fixingId], references: [id])
+  description String
+  hsnCode     String
+  kg          Float
+  rate        Float
+  amount      Float
+  cgstRate    Float   @default(0)
+  cgstAmount  Float   @default(0)
+  sgstRate    Float   @default(0)
+  sgstAmount  Float   @default(0)
+  lotNo       String?
+
+  @@index([invoiceId])
+  @@index([fixingId])
 }
 
 model Fund {
   id            String          @id @default(cuid())
   name          String
   type          FundType
-  opening       Decimal         @db.Decimal(14, 2) @default(0)
+  opening       Float           @default(0)
   bankName      String?
   accountNumber String?
   createdAt     DateTime        @default(now())
@@ -71,13 +123,13 @@ model Lot {
   party             Party    @relation(fields: [partyId], references: [id])
   itemId            String
   item              Item     @relation(fields: [itemId], references: [id])
-  date              DateTime @db.Date
-  grossWeightKg     Decimal? @db.Decimal(12, 3)
+  date              DateTime
+  grossWeightKg     Float?
   bagCount          Int?
-  bagTareKg         Decimal? @db.Decimal(12, 3)
-  moisturePercent   Decimal? @db.Decimal(5, 2)
-  driageDeductionKg Decimal? @db.Decimal(12, 3)
-  totalKg           Decimal  @db.Decimal(12, 3)
+  bagTareKg         Float?
+  moisturePercent   Float?
+  driageDeductionKg Float?
+  totalKg           Float
   notes             String?
   billNo            String?
   createdAt         DateTime @default(now())
@@ -93,41 +145,47 @@ model Fixing {
   id        String   @id @default(cuid())
   lotId     String
   lot       Lot      @relation(fields: [lotId], references: [id])
-  date      DateTime @db.Date
-  kg        Decimal  @db.Decimal(12, 3)
-  rate      Decimal  @db.Decimal(12, 2)
-  tcsRate   Decimal? @db.Decimal(5, 2)
-  tcsAmount Decimal? @db.Decimal(14, 2)
-  tdsRate   Decimal? @db.Decimal(5, 2)
-  tdsAmount Decimal? @db.Decimal(14, 2)
+  date      DateTime
+  kg        Float
+  rate      Float
+  tcsRate   Float?
+  tcsAmount Float?
+  tdsRate   Float?
+  tdsAmount Float?
   billNo    String?  @unique
   notes     String?
+  paymentId String?
+  payment   Payment? @relation(fields: [paymentId], references: [id])
+  invoiceLine InvoiceLine?
   createdAt DateTime @default(now())
 
   @@index([lotId])
+  @@index([paymentId])
 }
 
 model Payment {
   id              String              @id @default(cuid())
   partyId         String
   party           Party               @relation(fields: [partyId], references: [id])
-  date            DateTime            @db.Date
-  amount          Decimal             @db.Decimal(14, 2)
-  advanceDeducted Decimal?            @db.Decimal(14, 2) @default(0)
-  grossAmount     Decimal?            @db.Decimal(14, 2)
+  date            DateTime
+  amount          Float
+  advanceDeducted Float?              @default(0)
+  grossAmount     Float?
   direction       Direction
   tradeType       TradeType
   fundId          String
   fund            Fund                @relation(fields: [fundId], references: [id])
   billNo          String              @unique
   itemId          String?
-  priceKg         Decimal?            @db.Decimal(12, 3)
-  rate            Decimal?            @db.Decimal(12, 2)
+  priceKg         Float?
+  rate            Float?
   method          String?
   notes           String?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   adjustments     AdvanceAdjustment[]
+  billedFixings   Fixing[]
+  invoice         Invoice?
 
   @@index([partyId])
   @@index([fundId])
@@ -138,9 +196,9 @@ model Loan {
   id            String              @id @default(cuid())
   partyId       String
   party         Party               @relation(fields: [partyId], references: [id])
-  date          DateTime            @db.Date
-  amount        Decimal             @db.Decimal(14, 2)
-  balanceAmount Decimal             @db.Decimal(14, 2) @default(0)
+  date          DateTime
+  amount        Float
+  balanceAmount Float               @default(0)
   status        LoanStatus          @default(ACTIVE)
   kind          LoanKind
   fundId        String
@@ -165,8 +223,8 @@ model AdvanceAdjustment {
   payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   loanId    String
   loan      Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
-  amount    Decimal  @db.Decimal(14, 2)
-  date      DateTime @db.Date
+  amount    Float
+  date      DateTime
   notes     String?
   createdAt DateTime @default(now())
 
@@ -180,8 +238,8 @@ model LoanRepayment {
   loan      Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
   fundId    String
   fund      Fund     @relation(fields: [fundId], references: [id])
-  amount    Decimal  @db.Decimal(14, 2)
-  date      DateTime @db.Date
+  amount    Float
+  date      DateTime
   method    String?
   notes     String?
   createdAt DateTime @default(now())
@@ -248,10 +306,10 @@ model OtherTransaction {
   id          String         @id @default(cuid())
   type        OtherTxnType
   category    String
-  amount      Decimal        @db.Decimal(14, 2)
+  amount      Decimal
   fundId      String
   fund        Fund           @relation(fields: [fundId], references: [id])
-  date        DateTime       @db.Date
+  date        DateTime
   billNo      String?
   description String?
   createdAt   DateTime       @default(now())

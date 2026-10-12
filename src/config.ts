@@ -9,7 +9,12 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default("7d"),
   ENCRYPTION_KEY: z.string().min(32),
   COOKIE_SECRET: z.string().min(16).default("dev-cookie-secret-change"),
-  FORCE_HTTPS: z.coerce.boolean().default(false),
+  // z.coerce.boolean() treats any non-empty string (including "false") as true,
+  // so parse the flag explicitly: only "true"/"1" enable it.
+  FORCE_HTTPS: z
+    .string()
+    .default("false")
+    .transform((v) => v === "true" || v === "1"),
   CLIENT_URL: z.string().default("http://localhost:5173"),
 });
 

@@ -5,6 +5,7 @@ import { requireAuth } from "../../auth/middleware.js";
 import { ApiError } from "../../lib/errorHandler.js";
 import { pricedKg, unpricedKg, fixingValue } from "../../lib/compute.js";
 import { getNextBillNo } from "../../lib/billSequence.js";
+import { computeTCS } from "../../lib/tax.js";
 import type { LotDTO } from "../../../shared/types.js";
 
 export const lotsRouter = Router();
@@ -86,6 +87,15 @@ lotsRouter.post("/", async (req, res, next) => {
       throw new ApiError(400, "Valid net weight (totalKg or gross minus tare/driage) is required");
     }
 
+    // Reserve the fixing's bill number before the transaction — getNextBillNo
+    // writes on its own connection and deadlocks if called inside it.
+    const initialFixKg = data.rate && data.rate > 0
+      ? Math.min(Math.max(0, data.fixKg ?? netWeight), netWeight)
+      : 0;
+    const initialBillNo = initialFixKg > 0
+      ? await getNextBillNo(data.kind === "PURCHASE" ? "PUR" : "SAL")
+      : null;
+
     const lot = await prisma.$transaction(async (tx) => {
       const created = await tx.lot.create({
         data: {
@@ -105,15 +115,14 @@ lotsRouter.post("/", async (req, res, next) => {
         include,
       });
 
-      if (data.rate && data.rate > 0) {
-        const want = data.fixKg ?? netWeight;
-        const kgVal = Math.min(Math.max(0, want), netWeight);
-        if (kgVal > 0) {
+      if (initialFixKg > 0 && initialBillNo && data.rate) {
+          const kgVal = initialFixKg;
+          const rate = data.rate;
+          const tcs = await computeTCS(tx, data.partyId, new Date(data.date), kgVal * rate);
           await tx.fixing.create({
-            data: { lotId: created.id, date: new Date(data.date), kg: kgVal, rate: data.rate, notes: "Entered with lot" },
+            data: { lotId: created.id, date: new Date(data.date), kg: kgVal, rate, notes: "Entered with lot", billNo: initialBillNo, ...tcs },
           });
         }
-      }
 
       return created;
     });
@@ -184,21 +193,28 @@ lotsRouter.post("/:id/fixings", async (req, res, next) => {
       throw new ApiError(400, `Cannot price more than pending weight (${pending.toFixed(3)} kg)`);
     }
 
-    const tcsAmount = data.tcsRate ? (data.kg * data.rate * data.tcsRate) / 100 : 0;
+    
     const tdsAmount = data.tdsRate ? (data.kg * data.rate * data.tdsRate) / 100 : 0;
 
     const prefix = lot.kind === "PURCHASE" ? "PUR" : "SAL";
     const billNo = await getNextBillNo(prefix);
+    // Reserve the payment number up front too — getNextBillNo performs its own
+    // write and must never run inside the interactive transaction (SQLite lock).
+    const payBillNo = data.settleNow && data.fundId
+      ? await getNextBillNo(lot.kind === "PURCHASE" ? "PAY" : "REC")
+      : null;
 
     const fixing = await prisma.$transaction(async (tx) => {
+      const tcs = await computeTCS(tx, lot.partyId, new Date(data.date), data.kg * data.rate, data.tcsRate);
+      
       const created = await tx.fixing.create({
         data: { 
           lotId: lot.id, 
           date: new Date(data.date), 
           kg: data.kg, 
           rate: data.rate, 
-          tcsRate: data.tcsRate || null,
-          tcsAmount: tcsAmount || null,
+          tcsRate: tcs.tcsRate,
+          tcsAmount: tcs.tcsAmount,
           tdsRate: data.tdsRate || null,
           tdsAmount: tdsAmount || null,
           billNo,
@@ -206,9 +222,9 @@ lotsRouter.post("/:id/fixings", async (req, res, next) => {
         },
       });
 
-      if (data.settleNow && data.fundId) {
-        const payBillNo = await getNextBillNo(lot.kind === "PURCHASE" ? "PAY" : "REC");
-        await tx.payment.create({
+
+      if (data.settleNow && data.fundId && payBillNo) {
+        const payment = await tx.payment.create({
           data: {
             partyId: lot.partyId,
             date: new Date(data.date),
@@ -222,6 +238,8 @@ lotsRouter.post("/:id/fixings", async (req, res, next) => {
             notes: `Against ${billNo} price fix ${data.kg} kg`,
           },
         });
+        // Link bill to payment so the digital register can show paid status
+        await tx.fixing.update({ where: { id: created.id }, data: { paymentId: payment.id } });
       }
 
       return created;

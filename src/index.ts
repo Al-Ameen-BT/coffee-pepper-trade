@@ -17,6 +17,8 @@ import { ledgerRouter } from "./modules/ledger/routes.js";
 import { statementsRouter } from "./modules/statements/routes.js";
 import { billsRouter } from "./modules/bills/routes.js";
 import { otherTxnRouter } from "./modules/other-transactions/routes.js";
+import { settingsRouter } from "./modules/settings/routes.js";
+import { invoicesRouter } from "./modules/invoices/routes.js";
 import { dashboardRouter } from "./modules/statements/routes.js";
 import { errorHandler } from "./lib/errorHandler.js";
 import { integrityMiddleware } from "./middleware/integrity.js";
@@ -119,6 +121,8 @@ app.use("/api/v1/ledger", ledgerRouter);
 app.use("/api/v1/reports", statementsRouter);
 app.use("/api/v1/bills", billsRouter);
 app.use("/api/v1/other-txn", otherTxnRouter);
+app.use("/api/v1/settings", settingsRouter);
+app.use("/api/v1/invoices", invoicesRouter);
 app.use("/api/v1/dashboard", dashboardRouter);
 
 app.get("/api/health", (_req, res) => {
