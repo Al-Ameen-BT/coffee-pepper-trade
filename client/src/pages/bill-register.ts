@@ -62,7 +62,7 @@ export async function render(): Promise<void> {
         <td class="num">${Number(i.cgstAmount) > 0 ? money(Number(i.cgstAmount) + Number(i.sgstAmount)) : "—"}</td>
         <td class="num"><strong>${money(i.total)}</strong></td>
         <td class="nowrap">${i.paymentBillNo ? `<span class="tag ok">Paid</span> <small class="muted">${esc(i.paymentBillNo)}</small>` : '<span class="tag warn">Unpaid</span>'}</td>
-        <td><div class="actions"><a href="/invoice/${i.id}" class="btn secondary sm" target="_blank">Open</a></div></td>
+        <td><div class="actions"><a href="/invoice/${i.id}" class="btn secondary sm">Open</a></div></td>
       </tr>
     `).join("")
     : `<tr><td colspan="10" class="empty">No invoices yet. Open a payment and choose "Create invoice" to bill its priced trades.</td></tr>`;
@@ -82,8 +82,8 @@ export async function render(): Promise<void> {
         <td class="num"><strong>${money(b.netAmount)}</strong></td>
         <td class="nowrap">${b.paid ? `<span class="tag ok">Paid</span>${b.paymentBillNo ? ` <small class="muted">${esc(b.paymentBillNo)}</small>` : ""}` : '<span class="tag warn">Unpaid</span>'}</td>
         <td><div class="actions">
-          <a href="/bill/${b.id}" class="btn secondary sm" target="_blank">Digital Bill</a>
-          <a href="/print-bill?fixingId=${b.id}" class="btn ${b.kind === "SALE" ? "gold" : "secondary"} sm" target="_blank">${b.kind === "SALE" ? "Tax Invoice" : "Purchase Invoice"}</a>
+          <a href="/bill/${b.id}" class="btn secondary sm">Digital Bill</a>
+          <a href="/print-bill?fixingId=${b.id}" class="btn ${b.kind === "SALE" ? "gold" : "secondary"} sm">${b.kind === "SALE" ? "Tax Invoice" : "Purchase Invoice"}</a>
         </div></td>
       </tr>
     `).join("")

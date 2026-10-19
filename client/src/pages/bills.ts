@@ -102,7 +102,7 @@ export async function render(): Promise<void> {
             <td class="num">${kg(f.kg)}</td>
             <td class="num">${money(f.rate)}</td>
             <td>${esc(f.notes || "")}</td>
-            <td><a href="/print-bill?fixingId=${f.id}" class="btn secondary sm" target="_blank">Print Formal Bill</a></td>
+            <td><a href="/print-bill?fixingId=${f.id}" class="btn secondary sm">Print Formal Bill</a></td>
           </tr>
         `).join("") : `<tr><td colspan="6" class="empty">No price fixings</td></tr>`}
       </tbody></table></div>
@@ -128,7 +128,7 @@ export async function render(): Promise<void> {
       party: bill.party,
       transactions: selectedRows
     }));
-    window.open("/print-statement", "_blank");
+    window.location.href = "/print-statement";
   });
 
   
@@ -138,7 +138,7 @@ export async function render(): Promise<void> {
       toast("Please select a bill number first", "error");
       return;
     }
-    window.open("/bill/" + sel.value, "_blank");
+    window.location.href = "/print-bill?fixingId=" + sel.value;
   });
 
 }

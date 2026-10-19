@@ -283,9 +283,34 @@ export function closeModal(): void {
   modalLastFocused = null;
 }
 
-// Expose to global window object for inline onclick handlers (e.g. onclick="closeModal()" or onclick="window.closeModal()")
+// Universal back navigation that handles same-window history, tabs, and direct visits
+export function goBack(fallbackUrl = "/bill-register"): void {
+  const hasLocalReferrer = document.referrer && new URL(document.referrer, window.location.origin).origin === window.location.origin;
+
+  if (hasLocalReferrer && window.history.length > 1) {
+    window.history.back();
+    return;
+  }
+
+  if (window.opener) {
+    try { window.close(); return; } catch {}
+  }
+
+  // Attempt to close if opened as new tab
+  try {
+    window.close();
+  } catch {}
+
+  // Fallback to safe navigation if tab doesn't close
+  setTimeout(() => {
+    window.location.href = fallbackUrl;
+  }, 100);
+}
+
+// Expose to global window object for inline onclick handlers (e.g. onclick="closeModal()" or onclick="goBack()")
 (window as any).closeModal = closeModal;
 (window as any).openModal = openModal;
+(window as any).goBack = goBack;
 
 // Close active modal on Escape key press
 window.addEventListener("keydown", (e) => {

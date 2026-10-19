@@ -117,8 +117,7 @@ export async function render(): Promise<void> {
         notes: fd.get("notes") || undefined,
       });
       toast(`Invoice ${invoice.billNo} created`, "success");
-      window.open(`/invoice/${invoice.id}`, "_blank");
-      routerNavigate("/bill-register");
+      routerNavigate(`/invoice/${invoice.id}`);
     } catch (err) {
       toast(err instanceof Error ? err.message : "Failed to create invoice", "error");
       saveBtn.disabled = false;

@@ -70,6 +70,7 @@ export async function render(): Promise<void> {
 
   document.getElementById("app")!.innerHTML = `
     <div class="print-bar no-print">
+      <button class="btn secondary" onclick="goBack('/bills')">Back</button>
       <button class="btn secondary" onclick="window.close()">Close</button>
       <button class="btn gold" onclick="window.print()">Print Statement</button>
     </div>

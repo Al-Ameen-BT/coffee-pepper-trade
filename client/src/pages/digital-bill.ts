@@ -29,14 +29,22 @@ export async function render(): Promise<void> {
   const isPurchase = bill.kind === "PURCHASE";
   document.title = `${isPurchase ? "Purchase Invoice" : (bill.billNo || "Bill")} · ${company.name}`;
 
-  (window as any).goBack = () => {
-    if (window.history.length > 1) {
+  (window as any).goBack = (fallback = "/bill-register") => {
+    const hasLocalReferrer = document.referrer && new URL(document.referrer, window.location.origin).origin === window.location.origin;
+
+    if (hasLocalReferrer && window.history.length > 1) {
       window.history.back();
-    } else if (window.opener) {
-      window.close();
-    } else {
-      window.location.href = "/bill-register";
+      return;
     }
+
+    if (window.opener) {
+      try { window.close(); return; } catch {}
+    }
+
+    try { window.close(); } catch {}
+    setTimeout(() => {
+      window.location.href = fallback;
+    }, 100);
   };
 
   document.getElementById("app")!.innerHTML = `
@@ -44,7 +52,7 @@ export async function render(): Promise<void> {
       <button class="btn secondary" onclick="goBack()">Back</button>
       <button class="btn secondary" onclick="copyBillLink()">Copy link</button>
       <button class="btn secondary" onclick="shareBill()">Share</button>
-      <a href="/print-bill?fixingId=${bill.id}" target="_blank" class="btn secondary">Print / PDF</a>
+      <a href="/print-bill?fixingId=${bill.id}" class="btn secondary">Print / PDF</a>
       <button class="btn gold" onclick="window.print()">Print bill</button>
     </div>
 

@@ -23,14 +23,22 @@ export async function render(): Promise<void> {
 
   const cgstPct = inv.lines.length ? Number(inv.lines[0].cgstRate) : 0;
 
-  (window as any).goBack = () => {
-    if (window.history.length > 1) {
+  (window as any).goBack = (fallback = "/bill-register") => {
+    const hasLocalReferrer = document.referrer && new URL(document.referrer, window.location.origin).origin === window.location.origin;
+
+    if (hasLocalReferrer && window.history.length > 1) {
       window.history.back();
-    } else if (window.opener) {
-      window.close();
-    } else {
-      window.location.href = "/bill-register";
+      return;
     }
+
+    if (window.opener) {
+      try { window.close(); return; } catch {}
+    }
+
+    try { window.close(); } catch {}
+    setTimeout(() => {
+      window.location.href = fallback;
+    }, 100);
   };
 
   document.getElementById("app")!.innerHTML = `

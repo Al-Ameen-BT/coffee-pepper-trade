@@ -19,14 +19,23 @@ export async function render(): Promise<void> {
     fixingId = billsList[0].id;
   }
 
-  (window as any).goBack = () => {
-    if (window.history.length > 1) {
+  (window as any).goBack = (fallback?: string) => {
+    const target = fallback || (kind === "SALE" ? "/sales" : "/bill-register");
+    const hasLocalReferrer = document.referrer && new URL(document.referrer, window.location.origin).origin === window.location.origin;
+
+    if (hasLocalReferrer && window.history.length > 1) {
       window.history.back();
-    } else if (window.opener) {
-      window.close();
-    } else {
-      window.location.href = kind === "SALE" ? "/sales" : "/bill-register";
+      return;
     }
+
+    if (window.opener) {
+      try { window.close(); return; } catch {}
+    }
+
+    try { window.close(); } catch {}
+    setTimeout(() => {
+      window.location.href = target;
+    }, 100);
   };
 
   if (!fixingId) {
