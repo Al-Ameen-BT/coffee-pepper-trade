@@ -137,7 +137,7 @@ export async function render(): Promise<void> {
               <td class="num">${money(item.unitPrice)}</td>
               <td class="num">${money(item.total)}</td>
             </tr>
-            ${Array.from({ length: 4 }, () => `
+            ${Array.from({ length: 3 }, () => `
             <tr class="bb-empty-row">
               <td class="ctr"></td>
               <td></td>
@@ -175,7 +175,7 @@ export async function render(): Promise<void> {
               <td class="num">${money(data.sgstAmount)}</td>
               <td class="num"><strong>${money(data.taxableValue + data.cgstAmount + data.sgstAmount)}</strong></td>
             </tr>
-            ${Array.from({ length: 4 }, () => `
+            ${Array.from({ length: 3 }, () => `
             <tr class="bb-empty-row">
               <td class="ctr"></td>
               <td></td>

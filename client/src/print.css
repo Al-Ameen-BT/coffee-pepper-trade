@@ -4,24 +4,41 @@
    Rooted in the same tokens as styles.css — espresso ink, paper tints,
    Fraunces display — so printed documents carry the same identity. */
 
-@page { size: A4 portrait; margin: 15mm; }
+@page { size: A4 portrait; margin: 8mm 10mm; }
 
 .print-only { display: none; }
 
 @media print {
+  @page { size: A4 portrait; margin: 8mm 10mm; }
   .sidebar, .no-print, .print-bar, .toast-container, .skip-link { display: none !important; }
   /* Reset screen min-heights — they push a phantom empty band onto a second page */
-  html, body { min-height: 0; }
-  .app { display: block; }
-  .main { padding: 0; }
-  .card { box-shadow: none; }
-  .table-wrap { overflow: visible; }
-  /* Printed output is black and white only — see the grayscale block below */
-  body {
-    background: #fff;
+  html, body {
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+  .app { display: block; margin: 0; padding: 0; }
+  .main { padding: 0; margin: 0; }
+  .card { box-shadow: none; border: none; }
+  .table-wrap { overflow: visible; }
+  
+  /* Strictly enforce 1-sheet fit */
+  .print-doc, .bb {
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
   .print-only { display: block; }
 }
 
@@ -50,16 +67,37 @@
     print-color-adjust: exact !important;
   }
 
-  /* Borders must survive the grayscale reset — and read as crisp solid lines */
-  .print-doc *,
-  .bb *,
-  #bill *,
+  /* Crisp black borders on specific structural containers — avoids turning every child into a solid box */
+  .print-doc,
+  .bb,
+  #bill,
+  .bb-head,
+  .bb-gstin,
+  .bb-info,
+  .bb-info > div,
+  .bb-receiver,
+  .bb-bottom,
+  .bb-bottom > section,
+  .bb-bank,
+  .bb-amounts,
+  .bb-total-value,
+  .bill-summary-wrap,
+  .bill-sig-line,
+  .print-table,
   .print-table th,
   .print-table td,
   table.bb-table,
   table.bb-table th,
   table.bb-table td {
     border-color: #000 !important;
+  }
+
+  table.bb-table,
+  table.bb-table th,
+  table.bb-table td,
+  .print-table,
+  .print-table th,
+  .print-table td {
     border-style: solid !important;
   }
 
@@ -79,8 +117,14 @@
     background: #fff !important;
   }
 
-  /* Keep fill-in lines visible on a photocopy */
-  .bb-fill { border-bottom-color: #000 !important; }
+  /* Dotted hand-fill lines remain purely a dotted bottom underline, never a solid 4-sided box */
+  .bb-fill {
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: 1px dotted #000 !important;
+    background: transparent !important;
+  }
 }
 
 /* ─── Print bar (screen-only toolbar above a document) ─── */
@@ -421,24 +465,24 @@ table.bb-table {
 table.bb-table th,
 table.bb-table td {
   border: 1px solid var(--ink);
-  padding: 6px 8px;
+  padding: 4px 6px;
   text-align: left;
 }
 
 table.bb-table th {
   background: var(--bb-pink);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   text-align: center;
 }
 
 table.bb-table tbody td {
   border: 1px solid var(--ink);
-  height: 27px;
+  height: 22px;
 }
 
 table.bb-table .bb-empty-row td {
-  height: 27px;
+  height: 22px;
   border: 1px solid var(--ink);
 }
 
@@ -449,6 +493,7 @@ table.bb-table tfoot td {
   font-weight: 700;
   background: var(--bb-pink);
   height: auto;
+  padding: 4px 6px;
 }
 
 /* Bottom summary: words + bank + terms | seal | amounts + signature */
@@ -461,23 +506,23 @@ table.bb-table tfoot td {
 }
 
 .bb-bottom > section {
-  padding: var(--s2) var(--s3);
+  padding: 6px 8px;
   border-right: 1px solid var(--ink);
 }
 
 .bb-bottom > section:last-child { border-right: 0; }
 
-.bb-words .bb-fill { display: block; margin-top: 10px; }
+.bb-words .bb-fill { display: block; margin-top: 4px; }
 
 .bb-bank {
   border: 1px solid var(--ink);
-  padding: var(--s2) var(--s3);
-  margin-top: var(--s3);
+  padding: 4px 6px;
+  margin-top: 4px;
 }
 
 .bb-bank .bb-field:last-child { margin-bottom: 0; }
 
-.bb-terms { margin-top: var(--s3); font-size: 11.5px; }
+.bb-terms { margin-top: 4px; font-size: 11px; }
 
 .bb-terms .bb-terms-head {
   font-weight: 700;
@@ -485,7 +530,7 @@ table.bb-table tfoot td {
   margin-bottom: 2px;
 }
 
-.bb-terms ol { margin: 0; padding-left: 16px; }
+.bb-terms ol { margin: 0; padding-left: 14px; }
 
 /* Seal area — large empty rectangle for the company stamp */
 
@@ -495,8 +540,8 @@ table.bb-table tfoot td {
 }
 
 .bb-seal-box {
-  width: 150px;
-  height: 96px;
+  width: 120px;
+  height: 60px;
   border: 1px dashed var(--muted);
   border-radius: 6px;
   display: grid;
@@ -511,27 +556,27 @@ table.bb-table tfoot td {
 
 .bb-amounts {
   border: 1px solid var(--ink);
-  padding: var(--s2) var(--s3);
+  padding: 4px 6px;
 }
 
-.bb-amounts .bb-field { margin-bottom: 10px; }
+.bb-amounts .bb-field { margin-bottom: 4px; }
 
 .bb-amounts .bb-total-value {
   font-weight: 700;
   background: var(--bb-pink);
-  margin: var(--s2) calc(-1 * var(--s3)) 0;
-  padding: 4px var(--s3) 0;
+  margin: 4px calc(-1 * 6px) 0;
+  padding: 3px 6px 0;
   border-top: 1px solid var(--ink);
 }
 
-.bb-cert { margin: var(--s3) 0 0; font-size: 12px; }
+.bb-cert { margin: 4px 0 0; font-size: 11px; }
 
-.bb-for { font-weight: 700; margin: var(--s2) 0 0; letter-spacing: 0.03em; }
+.bb-for { font-weight: 700; margin: 4px 0 0; letter-spacing: 0.03em; font-size: 11.5px; }
 
 .bb-sign {
-  margin-top: 36px;
+  margin-top: 18px;
   text-align: right;
-  font-size: 12px;
+  font-size: 11.5px;
 }
 
 /* ─── Streamlined Bill Layout ────────────────────────────────────────────── */

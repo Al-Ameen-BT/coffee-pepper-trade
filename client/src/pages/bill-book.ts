@@ -6,7 +6,7 @@ import { api } from "../api.js";
 import { esc } from "../format.js";
 import type { CompanyInfoDTO } from "../../../shared/types.js";
 
-const EMPTY_ROWS = 8;
+const EMPTY_ROWS = 5;
 
 // Pre-print a saved value, or keep the dotted fill line when unset
 const fill = (value: string | null): string =>
@@ -67,7 +67,7 @@ export async function render(): Promise<void> {
       <!-- Top information: two ruled columns -->
       <div class="bb-info">
         <div>
-          <div class="bb-section-label" style="font-weight: 700; margin-bottom: 6px;">Invoice Details:</div>
+          <div class="bb-section-label" style="font-weight: 700; margin-bottom: 4px;">Invoice Details:</div>
           <div class="bb-field"><span class="lbl">Invoice Number :</span> <span class="bb-serial">${esc(serial.serial)}</span> <span class="bb-fill"></span></div>
           <div class="bb-field"><span class="lbl">Invoice Date :</span> <span class="bb-fill"></span></div>
           <div class="bb-inline-pair">
@@ -77,7 +77,8 @@ export async function render(): Promise<void> {
           </div>
         </div>
         <div>
-          <div class="bb-field" style="margin-top: 22px;"><span class="lbl">Transportation Mode :</span> <span class="bb-fill"></span></div>
+          <div class="bb-section-label" style="font-weight: 700; margin-bottom: 4px;">Transport &amp; Supply:</div>
+          <div class="bb-field"><span class="lbl">Transportation Mode :</span> <span class="bb-fill"></span></div>
           <div class="bb-field"><span class="lbl">Vehicle No :</span> <span class="bb-fill"></span></div>
           <div class="bb-field"><span class="lbl">Date &amp; Time of Supply :</span> <span class="bb-fill"></span></div>
           <div class="bb-field"><span class="lbl">Place of Supply :</span> <span class="bb-fill"></span></div>
@@ -94,10 +95,6 @@ export async function render(): Promise<void> {
           <div class="bb-field"><span class="lbl">State Code :</span> <span class="bb-fill"></span></div>
           <div class="bb-field"><span class="lbl">PIN Code :</span> <span class="bb-fill"></span></div>
           <div class="bb-field"><span class="lbl">GSTIN :</span> <span class="bb-fill"></span></div>
-        </div>
-        <div class="bb-inline-pair">
-          <div class="bb-field"><span class="lbl">From :</span> <span class="bb-fill"></span></div>
-          <div class="bb-field"><span class="lbl">To :</span> <span class="bb-fill"></span></div>
         </div>
       </div>
 
