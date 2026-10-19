@@ -72,7 +72,7 @@ export async function render(): Promise<void> {
       <tr>
         <td><a href="/bill/${b.id}" data-nav="/bill/${b.id}">${esc(b.billNo || "—")}</a></td>
         <td class="nowrap">${b.date}</td>
-        <td><span class="tag ${b.kind === "SALE" ? "receive" : "pay"}">${b.kind === "SALE" ? "Tax Invoice" : "Purchase Invoice"}</span></td>
+        <td><span class="tag ${b.kind === "SALE" ? "receive" : "pay"}">${b.kind === "SALE" ? "Sale Bill" : "Purchase Invoice"}</span></td>
         <td>${esc(b.partyName)}</td>
         <td>${esc(b.itemName)} <span class="muted">${b.hsnCode}</span></td>
         <td class="num">${kg(b.kg)}</td>
@@ -83,7 +83,7 @@ export async function render(): Promise<void> {
         <td class="nowrap">${b.paid ? `<span class="tag ok">Paid</span>${b.paymentBillNo ? ` <small class="muted">${esc(b.paymentBillNo)}</small>` : ""}` : '<span class="tag warn">Unpaid</span>'}</td>
         <td><div class="actions">
           <a href="/bill/${b.id}" class="btn secondary sm">Digital Bill</a>
-          <a href="/print-bill?fixingId=${b.id}" class="btn ${b.kind === "SALE" ? "gold" : "secondary"} sm">${b.kind === "SALE" ? "Tax Invoice" : "Purchase Invoice"}</a>
+          <a href="/print-bill?fixingId=${b.id}" class="btn ${b.kind === "SALE" ? "gold" : "secondary"} sm">${b.kind === "SALE" ? "Sale Bill" : "Purchase Invoice"}</a>
         </div></td>
       </tr>
     `).join("")
@@ -93,11 +93,11 @@ export async function render(): Promise<void> {
     <div class="topbar">
       <div>
         <h2>Invoices &amp; Bills Register</h2>
-        <p>Issued Purchase Invoices (unregistered) and Tax Invoices cum Bill of Supply. Open digitally or print.</p>
+        <p>Issued Purchase Invoices (unregistered) and Sale Bills. Open digitally or print.</p>
       </div>
       <div class="actions">
-        <a href="/print-bill?kind=SALE" class="btn gold">Tax Invoice Generator</a>
-        <a href="/bill-book" class="btn secondary">Blank Bill Book</a>
+        <a href="/print-bill?kind=SALE" class="btn gold">Sale Bill Generator</a>
+        <a href="/bill-book" class="btn secondary">Blank Sale Bill</a>
       </div>
     </div>
     <div class="grid kpis">

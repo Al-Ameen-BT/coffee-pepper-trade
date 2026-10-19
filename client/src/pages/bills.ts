@@ -57,7 +57,7 @@ export async function render(): Promise<void> {
           </select>
         </label>
         <a href="/bill-register" data-nav="/bill-register" class="btn secondary">Invoices Register</a>
-        <a href="/print-bill?kind=SALE" class="btn secondary">Tax Invoice cum Bill of Supply</a>
+        <a href="/print-bill?kind=SALE" class="btn secondary">Sale Bill</a>
         <button class="btn secondary" type="button" id="print-formal-bill">Open Selected Bill</button>
         <button class="btn gold" type="button" id="print-selected">Print Statement</button>
       </div>

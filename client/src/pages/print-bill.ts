@@ -65,7 +65,7 @@ export async function render(): Promise<void> {
     const item = data.item;
 
     const isPurchase = data.kind === "PURCHASE";
-    document.title = `${isPurchase ? "Purchase Invoice" : "Tax Invoice Cum Bill of Supply"} ${data.billNo} · ${COMPANY.name}`;
+    document.title = `${isPurchase ? "Purchase Invoice" : "Sale Bill"} ${data.billNo} · ${COMPANY.name}`;
 
     document.getElementById("app")!.innerHTML = `
       <div class="print-bar no-print">
@@ -78,14 +78,14 @@ export async function render(): Promise<void> {
           </select>
         </label>
         ` : ""}
-        <button class="btn gold" onclick="window.print()">Print ${isPurchase ? "Purchase Invoice" : "Tax Invoice"}</button>
+        <button class="btn gold" onclick="window.print()">Print ${isPurchase ? "Purchase Invoice" : "Sale Bill"}</button>
       </div>
 
       <div class="print-doc bb">
         <!-- Header band -->
         <div class="bb-head">
           <div>
-            <span class="bb-form-name">${isPurchase ? "Purchase Invoice" : "TAX INVOICE CUM BILL OF SUPPLY"}</span>
+            <span class="bb-form-name">${isPurchase ? "Purchase Invoice" : "SALE BILL"}</span>
             ${isPurchase ? `<div style="font-size: 10.5px; font-weight: 600; text-align: center; margin-top: 3px; color: #333; letter-spacing: 0.02em;">(purchase from unregistered)</div>` : ""}
           </div>
           <div class="bb-head-center">

@@ -23,7 +23,7 @@ export async function render(): Promise<void> {
         <td>
           <div style="display: flex; gap: 6px; align-items: center; justify-content: flex-end;">
             ${Number(l.unpricedKg) > 0 ? `<button class="btn secondary sm" data-fix="${l.id}">Fix price</button>` : '<span class="tag ok">Fully priced</span>'}
-            ${Number(l.pricedKg) > 0 ? `<a href="/print-bill?fixingId=${l.id}&kind=SALE" class="btn gold sm">Tax Invoice</a>` : ""}
+            ${Number(l.pricedKg) > 0 ? `<a href="/print-bill?fixingId=${l.id}&kind=SALE" class="btn gold sm">Sale Bill</a>` : ""}
           </div>
         </td>
       </tr>
@@ -37,7 +37,7 @@ export async function render(): Promise<void> {
         <p>Record scale gross weight, bag tare, and moisture. Price can be fixed later in multiple tranches.</p>
       </div>
       <div class="actions">
-        <a href="/print-bill?kind=SALE" class="btn secondary">Tax Invoice cum Bill of Supply</a>
+        <a href="/print-bill?kind=SALE" class="btn secondary">Sale Bill</a>
         <button class="btn" id="add-btn">New sale</button>
       </div>
     </div>

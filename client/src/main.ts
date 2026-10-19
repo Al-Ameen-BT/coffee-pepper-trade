@@ -72,8 +72,8 @@ const NAV_GROUPS: { label: string | null; links: { path: string; label: string }
     label: "Invoices & Reports",
     links: [
       { path: "/bill-register", label: "Invoices Register" },
-      { path: "/print-bill?kind=SALE", label: "Tax Invoice cum Bill of Supply" },
-      { path: "/bill-book", label: "Blank Bill Book (Manual)" },
+      { path: "/print-bill?kind=SALE", label: "Sale Bill" },
+      { path: "/bill-book", label: "Blank Sale Bill (Manual)" },
       { path: "/bills", label: "Party Statements" },
       { path: "/statements", label: "Financial Statements" },
     ],

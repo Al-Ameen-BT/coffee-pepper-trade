@@ -18,7 +18,7 @@ export async function render(): Promise<void> {
   // The pre-printed serial advances with each blank sheet pulled from the
   // book. It is drawn from the same BillSequence counters the app bills from,
   const serial = await api.get<{ serial: string; next: string }>("/bills/book-serial");
-  document.title = `Blank Tax Invoice Cum Bill of Supply · ${COMPANY.name}`;
+  document.title = `Blank Sale Bill · ${COMPANY.name}`;
 
   const itemRows = Array.from({ length: EMPTY_ROWS }, () => `
       <tr>
@@ -58,13 +58,13 @@ export async function render(): Promise<void> {
       <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; cursor:pointer;">
         <input type="checkbox" id="toggle-serial"> Pre-fill Serial (${esc(serial.serial)})
       </label>
-      <button class="btn gold" onclick="window.print()">Print Blank Bill Book</button>
+      <button class="btn gold" onclick="window.print()">Print Blank Sale Bill</button>
     </div>
 
     <div class="print-doc bb">
       <!-- Header band -->
       <div class="bb-head">
-        <div><span class="bb-form-name">TAX INVOICE CUM BILL OF SUPPLY</span></div>
+        <div><span class="bb-form-name">SALE BILL</span></div>
         <div class="bb-head-center">
           <h1>${esc(COMPANY.name).toUpperCase()}</h1>
           <p class="bb-tagline">${esc(COMPANY.tagline)}</p>
