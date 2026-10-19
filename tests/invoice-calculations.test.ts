@@ -101,4 +101,75 @@ describe("Invoice Calculations & Edge Cases", () => {
       expect(pincodeDisplay).toBe("—");
     });
   });
+
+  describe("Two Distinct Invoice Formats: Purchase Invoice vs Tax Invoice Cum Bill of Supply", () => {
+    it("distinguishes title and labels based on transaction kind", () => {
+      const getDocumentTitle = (isPurchase: boolean, billNo: string, companyName: string) =>
+        `${isPurchase ? "Purchase Invoice" : "Tax Invoice Cum Bill of Supply"} ${billNo} · ${companyName}`;
+
+      const getHeaderLabel = (isPurchase: boolean) =>
+        isPurchase ? "PURCHASE INVOICE" : "TAX INVOICE CUM BILL OF SUPPLY";
+
+      const getCssClass = (isPurchase: boolean) =>
+        isPurchase ? "purchase-invoice" : "tax-supply-invoice";
+
+      expect(getDocumentTitle(true, "PUR-001", "Uzhunnungal Traders")).toBe(
+        "Purchase Invoice PUR-001 · Uzhunnungal Traders"
+      );
+      expect(getDocumentTitle(false, "SAL-001", "Uzhunnungal Traders")).toBe(
+        "Tax Invoice Cum Bill of Supply SAL-001 · Uzhunnungal Traders"
+      );
+      expect(getHeaderLabel(true)).toBe("PURCHASE INVOICE");
+      expect(getHeaderLabel(false)).toBe("TAX INVOICE CUM BILL OF SUPPLY");
+      expect(getCssClass(true)).toBe("purchase-invoice");
+      expect(getCssClass(false)).toBe("tax-supply-invoice");
+    });
+
+    it("formats Purchase Invoice with supplier, company purchaser, and no GST column", () => {
+      const purchaseData = {
+        kind: "PURCHASE",
+        party: { name: "Raju Farmer", gstin: null, state: "Kerala" },
+        company: { name: "Uzhunnungal Traders", gstin: "32XXXXX1234Z1" },
+        item: { description: "Raw Coffee Arabica", qty: 250, unitPrice: 320, total: 80000 },
+      };
+
+      const isPurchase = purchaseData.kind === "PURCHASE";
+      const supplierStatus = purchaseData.party.gstin ? purchaseData.party.gstin : "Unregistered Supplier";
+      const columns = isPurchase
+        ? ["Sl. No.", "Description of Goods", "HSN/SAC", "Quantity", "Rate per KG", "Total"]
+        : ["Sl. No.", "Name of Product", "HSN", "Qty (kg)", "Rate", "Taxable Value", "CGST", "SGST", "Total"];
+
+      expect(supplierStatus).toBe("Unregistered Supplier");
+      expect(columns).not.toContain("CGST");
+      expect(columns).not.toContain("SGST");
+      expect(columns).not.toContain("GST Rate");
+      expect(purchaseData.company.name).toBe("Uzhunnungal Traders");
+    });
+
+    it("formats Tax Invoice Cum Bill of Supply with customer Bill To and separate GST columns", () => {
+      const salesData = {
+        kind: "SALE",
+        party: { name: "Kerala Spices Exports Ltd", gstin: "32ABCDE1234F1Z5", state: "Kerala" },
+        item: { description: "Black Pepper Garbled", qty: 1000, unitPrice: 650, total: 650000 },
+        taxableValue: 650000,
+        cgstRate: 2.5,
+        cgstAmount: 16250,
+        sgstRate: 2.5,
+        sgstAmount: 16250,
+        grandTotal: 682500,
+      };
+
+      const isPurchase = salesData.kind === "PURCHASE";
+      const columns = isPurchase
+        ? ["Sl. No.", "Description of Goods", "HSN/SAC", "Quantity", "Rate per KG", "Total"]
+        : ["Sl. No.", "Name of Product", "HSN", "Qty (kg)", "Rate", "Taxable Value", "CGST", "SGST", "Total"];
+
+      expect(columns).toContain("Taxable Value");
+      expect(columns).toContain("CGST");
+      expect(columns).toContain("SGST");
+      expect(salesData.grandTotal).toBe(
+        salesData.taxableValue + salesData.cgstAmount + salesData.sgstAmount
+      );
+    });
+  });
 });

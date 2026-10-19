@@ -72,8 +72,9 @@ const NAV_GROUPS: { label: string | null; links: { path: string; label: string }
     label: "Invoices & Reports",
     links: [
       { path: "/bill-register", label: "Invoices Register" },
-      { path: "/print-bill?kind=SALE", label: "Sale Bill" },
-      { path: "/bill-book", label: "Blank Sale Bill (Manual)" },
+      { path: "/print-bill?kind=PURCHASE", label: "Purchase Invoice" },
+      { path: "/print-bill?kind=SALE", label: "Tax Invoice Cum Bill of Supply" },
+      { path: "/bill-book", label: "Blank Bill Book (Manual)" },
       { path: "/bills", label: "Party Statements" },
       { path: "/statements", label: "Financial Statements" },
     ],
@@ -86,12 +87,13 @@ const NAV_GROUPS: { label: string | null; links: { path: string; label: string }
 
 export function renderShell(content: string): void {
   const path = currentPath();
+  const fullLoc = window.location.pathname + window.location.search;
   const nav = NAV_GROUPS.map((g) => {
     const links = g.links
       .map(
         (l) => {
           const lBase = l.path.split("?")[0];
-          const isActive = path === lBase;
+          const isActive = l.path.includes("?") ? fullLoc === l.path : path === lBase;
           return `<a href="${l.path}" class="${isActive ? "active" : ""}" ${isActive ? 'aria-current="page"' : ""} data-nav="${l.path}">${l.label}</a>`;
         },
       )
@@ -99,7 +101,7 @@ export function renderShell(content: string): void {
     return g.label ? `<div class="nav-label" aria-hidden="true">${g.label}</div>${links}` : links;
   }).join("");
 
-  const active = NAV_GROUPS.flatMap((g) => g.links).find((l) => l.path.split("?")[0] === path);
+  const active = NAV_GROUPS.flatMap((g) => g.links).find((l) => l.path.includes("?") ? fullLoc === l.path : l.path.split("?")[0] === path);
   document.title = active ? `${active.label} · Uzhunnungal Traders` : "Uzhunnungal Traders";
 
   document.getElementById("app")!.innerHTML = `

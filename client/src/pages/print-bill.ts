@@ -65,7 +65,11 @@ export async function render(): Promise<void> {
     const item = data.item;
 
     const isPurchase = data.kind === "PURCHASE";
-    document.title = `${isPurchase ? "Purchase Invoice" : "Sale Bill"} ${data.billNo} · ${COMPANY.name}`;
+    document.title = `${
+      isPurchase
+        ? "Purchase Invoice"
+        : "Tax Invoice Cum Bill of Supply"
+    } ${data.billNo} · ${COMPANY.name}`;
 
     document.getElementById("app")!.innerHTML = `
       <div class="print-bar no-print">
@@ -78,14 +82,18 @@ export async function render(): Promise<void> {
           </select>
         </label>
         ` : ""}
-        <button class="btn gold" onclick="window.print()">Print ${isPurchase ? "Purchase Invoice" : "Sale Bill"}</button>
+        <button class="btn gold" onclick="window.print()">Print ${isPurchase ? "Purchase Invoice" : "Tax Invoice Cum Bill of Supply"}</button>
       </div>
 
-      <div class="print-doc bb">
+      <div class="print-doc bb ${isPurchase ? "purchase-invoice" : "tax-supply-invoice"}">
         <!-- Header band -->
         <div class="bb-head">
           <div>
-            <span class="bb-form-name">${isPurchase ? "Purchase Invoice" : "SALE BILL"}</span>
+            <span class="bb-form-name">
+              ${isPurchase
+                ? "PURCHASE INVOICE"
+                : "TAX INVOICE CUM BILL OF SUPPLY"}
+            </span>
             ${isPurchase ? `<div style="font-size: 10.5px; font-weight: 600; text-align: center; margin-top: 3px; color: #333; letter-spacing: 0.02em;">(purchase from unregistered)</div>` : ""}
           </div>
           <div class="bb-head-center">
@@ -118,9 +126,39 @@ export async function render(): Promise<void> {
           </div>
         </div>
 
-        <!-- Details of receiver (Bill To) -->
+        <!-- Details of Supplier & Purchaser / Customer -->
+        ${isPurchase ? `
+        <!-- Purchase: Supplier (Purchase From) and Purchaser (Billed To) -->
+        <div class="bb-party-grid">
+          <div>
+            <div class="bb-section-label">Purchase From (Supplier)</div>
+            <div class="bb-field"><span class="lbl">Name :</span> <strong>${esc(party.name)}</strong></div>
+            <div class="bb-field"><span class="lbl">Supplier Status :</span> <span>${party.gstin ? esc(party.gstin) : "Unregistered Supplier"}</span></div>
+            <div class="bb-field"><span class="lbl">Address :</span> <span>${esc(party.address || "—")}${party.place ? `, ${esc(party.place)}` : ""}</span></div>
+            <div class="bb-inline-pair">
+              <div class="bb-field"><span class="lbl">State :</span> <span>${esc(party.state || "Kerala")}</span></div>
+              <div class="bb-field"><span class="lbl">State Code :</span> <span>${esc(party.stateCode || "32")}</span></div>
+              <div class="bb-field"><span class="lbl">PIN Code :</span> <span>${esc(party.pincode || "—")}</span></div>
+            </div>
+            <div class="bb-field"><span class="lbl">Dispatch From :</span> <span>${esc(party.place || party.address || "Wayanad")}</span></div>
+          </div>
+          <div>
+            <div class="bb-section-label">Purchaser (Billed To)</div>
+            <div class="bb-field"><span class="lbl">Name :</span> <strong>${esc(COMPANY.name)}</strong></div>
+            <div class="bb-field"><span class="lbl">GSTIN :</span> <strong>${esc(COMPANY.gstin)}</strong></div>
+            <div class="bb-field"><span class="lbl">Address :</span> <span>${esc(COMPANY.address)} · PIN: ${esc(COMPANY.pincode)}</span></div>
+            <div class="bb-inline-pair">
+              <div class="bb-field"><span class="lbl">State :</span> <span>${esc(COMPANY.state || "Kerala")}</span></div>
+              <div class="bb-field"><span class="lbl">State Code :</span> <span>${esc(COMPANY.stateCode || "32")}</span></div>
+              <div class="bb-field"><span class="lbl">Phone :</span> <span>${esc(COMPANY.phone)}</span></div>
+            </div>
+            <div class="bb-field"><span class="lbl">Place of Delivery :</span> <span>Kariambadi, Wayanad</span></div>
+          </div>
+        </div>
+        ` : `
+        <!-- Sales: Bill To (Customer) -->
         <div class="bb-receiver">
-          <div class="bb-section-label">Bill To</div>
+          <div class="bb-section-label">Bill To (Customer)</div>
           <div class="bb-field"><span class="lbl">Name :</span> <strong>${esc(party.name)}</strong></div>
           <div class="bb-field"><span class="lbl">Address :</span> <span>${esc(party.address || "—")}${party.place ? `, ${esc(party.place)}` : ""}</span></div>
           <div class="bb-inline-pair">
@@ -134,9 +172,12 @@ export async function render(): Promise<void> {
             <div class="bb-field"><span class="lbl">To :</span> <span>${esc(party.place || party.address || "—")}</span></div>
           </div>
         </div>
+        `}
 
         <!-- Goods Table -->
         ${isPurchase ? `
+        <!-- Purchase invoice table -->
+        <!-- Sl. No. | Description | HSN/SAC | Quantity | Rate per KG | Total -->
         <table class="bb-table">
           <thead>
             <tr>
@@ -179,6 +220,8 @@ export async function render(): Promise<void> {
           </tfoot>
         </table>
         ` : `
+        <!-- Sales tax invoice table -->
+        <!-- Sl. No. | Product | HSN | Qty | Rate | Taxable Value | CGST | SGST | Total -->
         <table class="bb-table">
           <thead>
             <tr>
@@ -260,12 +303,15 @@ export async function render(): Promise<void> {
 
           <section>
             <div class="bb-amounts">
+              ${isPurchase ? `
+              <div class="bb-field" style="display:flex; justify-content:space-between;"><span class="lbl">Gross Total :</span> <strong>${money(item.total)}</strong></div>
+              <div class="bb-field" style="display:flex; justify-content:space-between; font-size:11.5px;"><span class="lbl">Tax on Reverse Charge :</span> <strong>Nil / Exempt</strong></div>
+              ` : `
               <div class="bb-field" style="display:flex; justify-content:space-between;"><span class="lbl">Taxable Value :</span> <strong>${money(data.taxableValue)}</strong></div>
-              ${!isPurchase ? `
               <div class="bb-field" style="display:flex; justify-content:space-between;"><span class="lbl">CGST (${data.cgstRate}%) :</span> <strong>${money(data.cgstAmount)}</strong></div>
               <div class="bb-field" style="display:flex; justify-content:space-between;"><span class="lbl">SGST (${data.sgstRate}%) :</span> <strong>${money(data.sgstAmount)}</strong></div>
-              ` : ""}
-              ${data.tcsAmount > 0 ? `<div class="bb-field" style="display:flex; justify-content:space-between;"><span class="lbl">TCS (${data.tcsRate}%) :</span> <strong>${money(data.tcsAmount)}</strong></div>` : ""}
+              `}
+              ${data.tcsAmount > 0 ? `<div class="bb-field" style="display:flex; justify-content:space-between;"><span class="lbl">TCS (${data.tcsRate}%) :</span> <strong>+ ${money(data.tcsAmount)}</strong></div>` : ""}
               ${data.tdsAmount > 0 ? `<div class="bb-field" style="display:flex; justify-content:space-between;"><span class="lbl">Less TDS (${data.tdsRate}%) :</span> <strong>− ${money(data.tdsAmount)}</strong></div>` : ""}
               <div class="bb-field bb-total-value" style="display:flex; justify-content:space-between;"><span class="lbl">Grand Total :</span> <strong>${money(data.grandTotal)}</strong></div>
             </div>

@@ -58,7 +58,7 @@ export async function render(): Promise<void> {
 
     <div class="print-doc">
       <div class="center" style="margin-bottom: var(--s2)">
-        <p class="doc-title" style="margin: 0">${isPurchase ? "Purchase Invoice" : "SALE BILL"}</p>
+        <p class="doc-title" style="margin: 0">${isPurchase ? "Purchase Invoice" : "TAX INVOICE CUM BILL OF SUPPLY"}</p>
         ${isPurchase ? `<p class="doc-sub" style="margin: 2px 0 0; font-size: 12px; font-weight: 600;">(purchase from unregistered)</p>` : ""}
       </div>
 

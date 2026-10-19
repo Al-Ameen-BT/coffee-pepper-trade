@@ -657,3 +657,56 @@ table.bb-table tfoot td {
 @media print {
   .bb { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* ─── Independent Invoice Styles: Purchase Invoice vs Tax Invoice Cum Bill of Supply ─── */
+.purchase-invoice,
+.tax-supply-invoice {
+  width: 100%;
+}
+
+.purchase-invoice .bb-party-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--ink);
+  border-top: 0;
+}
+
+.purchase-invoice .bb-party-grid > div {
+  padding: var(--s2) var(--s3);
+}
+
+.purchase-invoice .bb-party-grid > div:first-child {
+  border-right: 1px solid var(--ink);
+}
+
+@media print {
+  .purchase-invoice,
+  .tax-supply-invoice {
+    width: 100%;
+    box-shadow: none;
+  }
+
+  .purchase-invoice .bb-table,
+  .tax-supply-invoice .bb-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+  }
+
+  .purchase-invoice .bb-table th,
+  .purchase-invoice .bb-table td,
+  .tax-supply-invoice .bb-table th,
+  .tax-supply-invoice .bb-table td {
+    padding: 3px 4px;
+    border: 0.5pt solid #333;
+  }
+
+  .purchase-invoice .bb-party-grid {
+    border: 0.5pt solid #333;
+    border-top: 0;
+  }
+
+  .purchase-invoice .bb-party-grid > div:first-child {
+    border-right: 0.5pt solid #333;
+  }
+}
