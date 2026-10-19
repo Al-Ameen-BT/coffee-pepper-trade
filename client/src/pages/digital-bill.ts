@@ -29,9 +29,19 @@ export async function render(): Promise<void> {
   const isPurchase = bill.kind === "PURCHASE";
   document.title = `${isPurchase ? "Purchase Invoice" : (bill.billNo || "Bill")} · ${company.name}`;
 
+  (window as any).goBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else if (window.opener) {
+      window.close();
+    } else {
+      window.location.href = "/bill-register";
+    }
+  };
+
   document.getElementById("app")!.innerHTML = `
     <div class="print-bar no-print">
-      <button class="btn secondary" onclick="history.back()">Back</button>
+      <button class="btn secondary" onclick="goBack()">Back</button>
       <button class="btn secondary" onclick="copyBillLink()">Copy link</button>
       <button class="btn secondary" onclick="shareBill()">Share</button>
       <a href="/print-bill?fixingId=${bill.id}" target="_blank" class="btn secondary">Print / PDF</a>

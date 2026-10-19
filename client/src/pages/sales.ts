@@ -20,7 +20,12 @@ export async function render(): Promise<void> {
         <td class="num">${kg(l.pricedKg)}</td>
         <td class="num pending">${kg(l.unpricedKg)}</td>
         <td class="num">${money(l.fixingValue)}</td>
-        <td>${Number(l.unpricedKg) > 0 ? `<button class="btn secondary" data-fix="${l.id}">Fix price</button>` : '<span class="tag ok">Fully priced</span>'}</td>
+        <td>
+          <div style="display: flex; gap: 6px; align-items: center; justify-content: flex-end;">
+            ${Number(l.unpricedKg) > 0 ? `<button class="btn secondary sm" data-fix="${l.id}">Fix price</button>` : '<span class="tag ok">Fully priced</span>'}
+            ${Number(l.pricedKg) > 0 ? `<a href="/print-bill?fixingId=${l.id}&kind=SALE" class="btn gold sm">Tax Invoice</a>` : ""}
+          </div>
+        </td>
       </tr>
     `).join("")
     : `<tr><td colspan="8" class="empty">No sale lots yet.</td></tr>`;
@@ -32,7 +37,7 @@ export async function render(): Promise<void> {
         <p>Record scale gross weight, bag tare, and moisture. Price can be fixed later in multiple tranches.</p>
       </div>
       <div class="actions">
-        <a href="/bill-book" target="_blank" class="btn secondary">Tax Invoice cum Bill of Supply</a>
+        <a href="/print-bill?kind=SALE" class="btn secondary">Tax Invoice cum Bill of Supply</a>
         <button class="btn" id="add-btn">New sale</button>
       </div>
     </div>

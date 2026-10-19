@@ -23,9 +23,19 @@ export async function render(): Promise<void> {
 
   const cgstPct = inv.lines.length ? Number(inv.lines[0].cgstRate) : 0;
 
+  (window as any).goBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else if (window.opener) {
+      window.close();
+    } else {
+      window.location.href = "/bill-register";
+    }
+  };
+
   document.getElementById("app")!.innerHTML = `
     <div class="print-bar no-print">
-      <button class="btn secondary" onclick="history.back()">Back</button>
+      <button class="btn secondary" onclick="goBack()">Back</button>
       <button class="btn secondary" onclick="copyInvoiceLink()">Copy link</button>
       <button class="btn secondary" onclick="shareInvoice()">Share</button>
       <button class="btn gold" onclick="window.print()">Print / Save PDF</button>

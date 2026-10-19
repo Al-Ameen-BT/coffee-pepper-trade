@@ -34,11 +34,21 @@ export async function render(): Promise<void> {
         <td class="num"></td>
       </tr>`).join("");
 
+  (window as any).goBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else if (window.opener) {
+      window.close();
+    } else {
+      window.location.href = "/bill-register";
+    }
+  };
+
   document.getElementById("app")!.innerHTML = `
     <div class="print-bar no-print">
-      <button class="btn secondary" onclick="window.history.back()">Back</button>
+      <button class="btn secondary" onclick="goBack()">Back</button>
       <button class="btn secondary" onclick="window.close()">Close</button>
-      <button class="btn gold" onclick="window.print()">Print Tax Invoice cum Bill of Supply</button>
+      <button class="btn gold" onclick="window.print()">Print Blank Bill Book</button>
     </div>
 
     <div class="print-doc bb">

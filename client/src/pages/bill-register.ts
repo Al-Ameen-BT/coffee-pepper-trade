@@ -96,7 +96,8 @@ export async function render(): Promise<void> {
         <p>Issued Purchase Invoices (unregistered) and Tax Invoices cum Bill of Supply. Open digitally or print.</p>
       </div>
       <div class="actions">
-        <a href="/bill-book" target="_blank" class="btn gold">Tax Invoice cum Bill of Supply</a>
+        <a href="/print-bill?kind=SALE" class="btn gold">Tax Invoice Generator</a>
+        <a href="/bill-book" class="btn secondary">Blank Bill Book</a>
       </div>
     </div>
     <div class="grid kpis">

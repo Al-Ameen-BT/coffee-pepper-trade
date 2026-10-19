@@ -3,10 +3,49 @@ import { money, kg, esc } from "../format.js";
 
 export async function render(): Promise<void> {
   const params = new URLSearchParams(window.location.search);
-  const fixingId = params.get("fixingId");
+  let fixingId = params.get("fixingId") || params.get("id");
+  const kind = params.get("kind") || "";
+
+  // Fetch list of available bills of this kind (or all bills) for the selector
+  let billsList: any[] = [];
+  try {
+    billsList = await api.get<any[]>(`/bills${kind ? `?kind=${kind}` : ""}`);
+  } catch (e) {
+    console.error("Could not load bills list", e);
+  }
+
+  // If no fixingId was specified in URL, auto-select the latest bill from the list
+  if (!fixingId && billsList.length > 0) {
+    fixingId = billsList[0].id;
+  }
+
+  (window as any).goBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else if (window.opener) {
+      window.close();
+    } else {
+      window.location.href = kind === "SALE" ? "/sales" : "/bill-register";
+    }
+  };
 
   if (!fixingId) {
-    document.getElementById("app")!.innerHTML = `<div class="print-doc"><p>No fixing ID provided.</p></div>`;
+    document.getElementById("app")!.innerHTML = `
+      <div class="print-bar no-print">
+        <button class="btn secondary" onclick="goBack()">Back</button>
+      </div>
+      <div class="card" style="max-width: 600px; margin: 40px auto; padding: 30px; text-align: center;">
+        <h3>No ${kind === "SALE" ? "Sales" : kind === "PURCHASE" ? "Purchases" : "Invoices"} Available</h3>
+        <p style="margin: 15px 0 25px; color: #555;">
+          There are no priced ${kind === "SALE" ? "sale trades" : kind === "PURCHASE" ? "purchase trades" : "trades"} yet to generate an invoice.
+          Record and price a trade in the ${kind === "SALE" ? "Sales" : "Purchases"} module first.
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+          <a href="${kind === "SALE" ? "/sales" : "/purchases"}" class="btn gold">Go to ${kind === "SALE" ? "Sales" : "Purchases"}</a>
+          <button class="btn secondary" onclick="goBack()">Back</button>
+        </div>
+      </div>
+    `;
     return;
   }
 
@@ -21,8 +60,16 @@ export async function render(): Promise<void> {
 
     document.getElementById("app")!.innerHTML = `
       <div class="print-bar no-print">
-        <button class="btn secondary" onclick="window.history.back()">Back</button>
-        <button class="btn gold" onclick="window.print()">Print Bill</button>
+        <button class="btn secondary" onclick="goBack()">Back</button>
+        ${billsList.length > 1 ? `
+        <label class="field-inline" style="display:flex; align-items:center; gap:8px;">
+          <span style="font-weight:600; font-size:13px;">Invoice:</span>
+          <select id="invoice-selector" style="padding:6px 12px; font-weight:600; border-radius:6px; border:1px solid #ccc; max-width:360px;">
+            ${billsList.map(b => `<option value="${b.id}" ${b.id === data.id || b.id === fixingId ? "selected" : ""}>${esc(b.billNo || "Bill")} — ${esc(b.partyName)} (${b.date})</option>`).join("")}
+          </select>
+        </label>
+        ` : ""}
+        <button class="btn gold" onclick="window.print()">Print ${isPurchase ? "Purchase Invoice" : "Tax Invoice"}</button>
       </div>
 
       <div class="print-doc bb">
@@ -186,7 +233,22 @@ export async function render(): Promise<void> {
         </div>
       </div>
     `;
+
+    const selector = document.getElementById("invoice-selector") as HTMLSelectElement | null;
+    if (selector) {
+      selector.addEventListener("change", (e) => {
+        const nextId = (e.target as HTMLSelectElement).value;
+        const newUrl = `/print-bill?fixingId=${nextId}${kind ? `&kind=${kind}` : ""}`;
+        window.history.pushState({}, "", newUrl);
+        render();
+      });
+    }
   } catch (err) {
-    document.getElementById("app")!.innerHTML = `<div class="print-doc"><p>Error loading bill: ${esc(String(err))}</p></div>`;
+    document.getElementById("app")!.innerHTML = `
+      <div class="print-bar no-print">
+        <button class="btn secondary" onclick="goBack()">Back</button>
+      </div>
+      <div class="print-doc"><p>Error loading bill: ${esc(String(err))}</p></div>
+    `;
   }
 }

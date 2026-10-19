@@ -72,7 +72,8 @@ const NAV_GROUPS: { label: string | null; links: { path: string; label: string }
     label: "Invoices & Reports",
     links: [
       { path: "/bill-register", label: "Invoices Register" },
-      { path: "/bill-book", label: "Tax Invoice cum Bill of Supply" },
+      { path: "/print-bill?kind=SALE", label: "Tax Invoice cum Bill of Supply" },
+      { path: "/bill-book", label: "Blank Bill Book (Manual)" },
       { path: "/bills", label: "Party Statements" },
       { path: "/statements", label: "Financial Statements" },
     ],
@@ -88,14 +89,17 @@ export function renderShell(content: string): void {
   const nav = NAV_GROUPS.map((g) => {
     const links = g.links
       .map(
-        (l) =>
-          `<a href="${l.path}" class="${path === l.path ? "active" : ""}" ${path === l.path ? 'aria-current="page"' : ""} data-nav="${l.path}">${l.label}</a>`,
+        (l) => {
+          const lBase = l.path.split("?")[0];
+          const isActive = path === lBase;
+          return `<a href="${l.path}" class="${isActive ? "active" : ""}" ${isActive ? 'aria-current="page"' : ""} data-nav="${l.path}">${l.label}</a>`;
+        },
       )
       .join("");
     return g.label ? `<div class="nav-label" aria-hidden="true">${g.label}</div>${links}` : links;
   }).join("");
 
-  const active = NAV_GROUPS.flatMap((g) => g.links).find((l) => l.path === path);
+  const active = NAV_GROUPS.flatMap((g) => g.links).find((l) => l.path.split("?")[0] === path);
   document.title = active ? `${active.label} · Uzhunnungal Traders` : "Uzhunnungal Traders";
 
   document.getElementById("app")!.innerHTML = `

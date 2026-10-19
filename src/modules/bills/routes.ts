@@ -184,7 +184,7 @@ billsRouter.get("/:fixingId/document", async (req, res, next) => {
 
 billsRouter.get("/formal/:fixingId", async (req, res, next) => {
   try {
-    const fixing = await prisma.fixing.findUnique({
+    let fixing = await prisma.fixing.findUnique({
       where: { id: req.params.fixingId },
       include: {
         lot: {
@@ -193,7 +193,19 @@ billsRouter.get("/formal/:fixingId", async (req, res, next) => {
       }
     });
 
-    if (!fixing) throw new ApiError(404, "Fixing not found");
+    if (!fixing) {
+      fixing = await prisma.fixing.findFirst({
+        where: { lotId: req.params.fixingId },
+        include: {
+          lot: {
+            include: { party: true, item: true }
+          }
+        },
+        orderBy: { date: "desc" }
+      });
+    }
+
+    if (!fixing) throw new ApiError(404, "Priced trade / fixing not found");
 
     let billNo = fixing.billNo;
     if (!billNo) {
@@ -223,6 +235,9 @@ billsRouter.get("/formal/:fixingId", async (req, res, next) => {
     const company = await getCompanyInfo();
 
     res.json({
+      id: fixing.id,
+      fixingId: fixing.id,
+      lotId: fixing.lotId,
       billNo,
       date: fixing.date.toISOString().slice(0, 10),
       dateTime: fixing.date.toLocaleDateString("en-IN", {
