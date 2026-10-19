@@ -31,7 +31,10 @@ export async function render(): Promise<void> {
         <h2>Sales</h2>
         <p>Record scale gross weight, bag tare, and moisture. Price can be fixed later in multiple tranches.</p>
       </div>
-      <button class="btn" id="add-btn">New sale</button>
+      <div class="actions">
+        <a href="/bill-book" target="_blank" class="btn secondary">Tax Invoice cum Bill of Supply</a>
+        <button class="btn" id="add-btn">New sale</button>
+      </div>
     </div>
     <div class="card">
       <div class="table-wrap">

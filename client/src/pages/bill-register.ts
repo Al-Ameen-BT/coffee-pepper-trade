@@ -72,7 +72,7 @@ export async function render(): Promise<void> {
       <tr>
         <td><a href="/bill/${b.id}" data-nav="/bill/${b.id}">${esc(b.billNo || "—")}</a></td>
         <td class="nowrap">${b.date}</td>
-        <td><span class="tag ${b.kind === "SALE" ? "receive" : "pay"}">${b.kind === "SALE" ? "Sale" : "Purchase"}</span></td>
+        <td><span class="tag ${b.kind === "SALE" ? "receive" : "pay"}">${b.kind === "SALE" ? "Tax Invoice" : "Purchase Invoice"}</span></td>
         <td>${esc(b.partyName)}</td>
         <td>${esc(b.itemName)} <span class="muted">${b.hsnCode}</span></td>
         <td class="num">${kg(b.kg)}</td>
@@ -82,8 +82,8 @@ export async function render(): Promise<void> {
         <td class="num"><strong>${money(b.netAmount)}</strong></td>
         <td class="nowrap">${b.paid ? `<span class="tag ok">Paid</span>${b.paymentBillNo ? ` <small class="muted">${esc(b.paymentBillNo)}</small>` : ""}` : '<span class="tag warn">Unpaid</span>'}</td>
         <td><div class="actions">
-          <a href="/bill/${b.id}" class="btn secondary sm" target="_blank">Open</a>
-          <a href="/print-bill?fixingId=${b.id}" class="btn secondary sm" target="_blank">PDF</a>
+          <a href="/bill/${b.id}" class="btn secondary sm" target="_blank">Digital Bill</a>
+          <a href="/print-bill?fixingId=${b.id}" class="btn ${b.kind === "SALE" ? "gold" : "secondary"} sm" target="_blank">${b.kind === "SALE" ? "Tax Invoice" : "Purchase Invoice"}</a>
         </div></td>
       </tr>
     `).join("")
@@ -92,11 +92,11 @@ export async function render(): Promise<void> {
   renderShell(`
     <div class="topbar">
       <div>
-        <h2>Bill register</h2>
-        <p>Every Bill of Supply issued, with tax treatment and payment status. Open one to send it digitally.</p>
+        <h2>Invoices &amp; Bills Register</h2>
+        <p>Issued Purchase Invoices (unregistered) and Tax Invoices cum Bill of Supply. Open digitally or print.</p>
       </div>
       <div class="actions">
-        <a href="/bill-book" target="_blank" class="btn secondary">Blank Bill Book</a>
+        <a href="/bill-book" target="_blank" class="btn gold">Tax Invoice cum Bill of Supply</a>
       </div>
     </div>
     <div class="grid kpis">

@@ -19,8 +19,8 @@
   /* Printed output is black and white only — see the grayscale block below */
   body {
     background: #fff;
-    -webkit-print-color-adjust: economy;
-    print-color-adjust: economy;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   .print-only { display: block; }
 }
@@ -46,19 +46,21 @@
     background-image: none !important;
     box-shadow: none !important;
     text-shadow: none !important;
-    -webkit-print-color-adjust: economy !important;
-    print-color-adjust: economy !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  /* Borders must survive the grayscale reset — and read as black lines */
+  /* Borders must survive the grayscale reset — and read as crisp solid lines */
   .print-doc *,
   .bb *,
   #bill *,
   .print-table th,
   .print-table td,
+  table.bb-table,
   table.bb-table th,
   table.bb-table td {
     border-color: #000 !important;
+    border-style: solid !important;
   }
 
   /* The pre-printed serial stays legible as black italic, not red */
@@ -430,12 +432,14 @@ table.bb-table th {
   text-align: center;
 }
 
-/* Light horizontal ruling on the empty item rows */
 table.bb-table tbody td {
-  border-color: var(--ink);
-  border-top-color: #b9a896;
-  border-bottom-color: #b9a896;
+  border: 1px solid var(--ink);
   height: 27px;
+}
+
+table.bb-table .bb-empty-row td {
+  height: 27px;
+  border: 1px solid var(--ink);
 }
 
 table.bb-table .num { text-align: right; }
@@ -577,9 +581,16 @@ table.bb-table tfoot td {
 
 .bill-footer-wrap {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 40px;
-  padding: 0 16px;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 35px;
+  padding: 0 4px;
+}
+
+.bill-footer-wrap .bb-terms {
+  text-align: left;
+  max-width: 360px;
+  margin: 0;
 }
 
 .bill-sig-box {

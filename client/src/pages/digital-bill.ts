@@ -26,7 +26,8 @@ export async function render(): Promise<void> {
   const tds = Number(bill.tdsAmount || 0);
   const net = subtotal + tcs - tds;
 
-  document.title = `${bill.billNo || "Bill"} · ${company.name}`;
+  const isPurchase = bill.kind === "PURCHASE";
+  document.title = `${isPurchase ? "Purchase Invoice" : (bill.billNo || "Bill")} · ${company.name}`;
 
   document.getElementById("app")!.innerHTML = `
     <div class="print-bar no-print">
@@ -38,7 +39,10 @@ export async function render(): Promise<void> {
     </div>
 
     <div class="print-doc">
-      <p class="doc-title center">Bill of Supply</p>
+      <div class="center" style="margin-bottom: var(--s2)">
+        <p class="doc-title" style="margin: 0">${isPurchase ? "Purchase Invoice" : "TAX INVOICE CUM BILL OF SUPPLY"}</p>
+        ${isPurchase ? `<p class="doc-sub" style="margin: 2px 0 0; font-size: 12px; font-weight: 600;">(purchase from unregistered)</p>` : ""}
+      </div>
 
       <div class="print-head">
         <div>
@@ -62,7 +66,7 @@ export async function render(): Promise<void> {
         <div class="right">
           <p><strong>Bill No:</strong> ${esc(bill.billNo || "—")}</p>
           <p><strong>Date:</strong> ${bill.date}</p>
-          <p><strong>${bill.kind === "SALE" ? "Sales Invoice" : "Purchase Bill"}</strong></p>
+          <p><strong>${isPurchase ? "Purchase Invoice" : "Sales Invoice"}</strong></p>
         </div>
       </div>
 

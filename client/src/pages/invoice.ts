@@ -18,7 +18,8 @@ export async function render(): Promise<void> {
   const inv = await api.get<InvoiceDTO>(`/invoices/${invoiceId}`);
   const c = inv.company;
 
-  document.title = `${inv.billNo} · ${c.name}`;
+  const isPurchase = inv.kind === "PURCHASE";
+  document.title = `${isPurchase ? "Purchase Invoice" : "Invoice"} ${inv.billNo} · ${c.name}`;
 
   const cgstPct = inv.lines.length ? Number(inv.lines[0].cgstRate) : 0;
 
@@ -31,7 +32,10 @@ export async function render(): Promise<void> {
     </div>
 
     <div class="print-doc">
-      <p class="doc-title center">Bill of Supply</p>
+      <div class="center" style="margin-bottom: var(--s2)">
+        <p class="doc-title" style="margin: 0">${isPurchase ? "Purchase Invoice" : "TAX INVOICE CUM BILL OF SUPPLY"}</p>
+        ${isPurchase ? `<p class="doc-sub" style="margin: 2px 0 0; font-size: 12px; font-weight: 600;">(purchase from unregistered)</p>` : ""}
+      </div>
 
       <div class="print-head">
         <div>
@@ -55,7 +59,7 @@ export async function render(): Promise<void> {
         <div class="right">
           <p><strong>Invoice No:</strong> ${esc(inv.billNo)}</p>
           <p><strong>Date:</strong> ${inv.date}</p>
-          <p><strong>${inv.kind === "SALE" ? "Sales Invoice" : "Purchase Bill"}</strong></p>
+          <p><strong>${isPurchase ? "Purchase Invoice" : "Sales Invoice"}</strong></p>
           ${inv.paymentBillNo ? `<p><strong>Payment:</strong> ${esc(inv.paymentBillNo)}</p>` : ""}
         </div>
       </div>

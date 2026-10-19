@@ -69,11 +69,12 @@ const NAV_GROUPS: { label: string | null; links: { path: string; label: string }
     ],
   },
   {
-    label: "Reports",
+    label: "Invoices & Reports",
     links: [
-      { path: "/bill-register", label: "Bill Register" },
-      { path: "/statements", label: "Financial Statements" },
+      { path: "/bill-register", label: "Invoices Register" },
+      { path: "/bill-book", label: "Tax Invoice cum Bill of Supply" },
       { path: "/bills", label: "Party Statements" },
+      { path: "/statements", label: "Financial Statements" },
     ],
   },
   {

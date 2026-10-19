@@ -56,8 +56,8 @@ export async function render(): Promise<void> {
             ${(bill.fixings || []).map(f => f.billNo ? `<option value="${f.id}">${esc(f.billNo)} (${f.date})</option>` : '').join('')}
           </select>
         </label>
-        <a href="/bill-register" data-nav="/bill-register" class="btn secondary">Bill Register</a>
-        <a href="/bill-book" target="_blank" class="btn secondary">Blank Bill Book</a>
+        <a href="/bill-register" data-nav="/bill-register" class="btn secondary">Invoices Register</a>
+        <a href="/bill-book" target="_blank" class="btn secondary">Tax Invoice cum Bill of Supply</a>
         <button class="btn secondary" type="button" id="print-formal-bill">Open Selected Bill</button>
         <button class="btn gold" type="button" id="print-selected">Print Statement</button>
       </div>

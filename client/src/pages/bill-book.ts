@@ -19,7 +19,7 @@ export async function render(): Promise<void> {
   // book. It is drawn from the same BillSequence counters the app bills from,
   // so the manual book and the digital bills never collide.
   const serial = await api.get<{ serial: string; next: string }>("/bills/book-serial");
-  document.title = `Bill of Supply ${serial.serial} · ${COMPANY.name}`;
+  document.title = `Tax Invoice Cum Bill of Supply ${serial.serial} · ${COMPANY.name}`;
 
   const itemRows = Array.from({ length: EMPTY_ROWS }, () => `
       <tr>
@@ -30,18 +30,21 @@ export async function render(): Promise<void> {
         <td class="num"></td>
         <td class="num"></td>
         <td class="num"></td>
+        <td class="num"></td>
+        <td class="num"></td>
       </tr>`).join("");
 
   document.getElementById("app")!.innerHTML = `
     <div class="print-bar no-print">
+      <button class="btn secondary" onclick="window.history.back()">Back</button>
       <button class="btn secondary" onclick="window.close()">Close</button>
-      <button class="btn gold" onclick="window.print()">Print Bill Book</button>
+      <button class="btn gold" onclick="window.print()">Print Tax Invoice cum Bill of Supply</button>
     </div>
 
     <div class="print-doc bb">
       <!-- Header band -->
       <div class="bb-head">
-        <div><span class="bb-form-name">Bill of Supply</span></div>
+        <div><span class="bb-form-name">TAX INVOICE CUM BILL OF SUPPLY</span></div>
         <div class="bb-head-center">
           <h1>${esc(COMPANY.name).toUpperCase()}</h1>
           <p class="bb-tagline">${esc(COMPANY.tagline)}</p>
@@ -54,15 +57,17 @@ export async function render(): Promise<void> {
       <!-- Top information: two ruled columns -->
       <div class="bb-info">
         <div>
-          <div class="bb-field"><span class="lbl">Serial Number :</span> <span class="bb-serial">${esc(serial.serial)}</span> <span class="bb-fill"></span></div>
-          <div class="bb-field"><span class="lbl">Issue Date :</span> <span class="bb-fill"></span></div>
+          <div class="bb-section-label" style="font-weight: 700; margin-bottom: 6px;">Invoice Details:</div>
+          <div class="bb-field"><span class="lbl">Invoice Number :</span> <span class="bb-serial">${esc(serial.serial)}</span> <span class="bb-fill"></span></div>
+          <div class="bb-field"><span class="lbl">Invoice Date :</span> <span class="bb-fill"></span></div>
           <div class="bb-inline-pair">
-            <div class="bb-field"><span class="lbl">State :</span> ${esc(COMPANY.state)}</div>
-            <div class="bb-field"><span class="lbl">Pin Code :</span> ${esc(COMPANY.pincode)}</div>
+            <div class="bb-field"><span class="lbl">State :</span> ${esc(COMPANY.state || "Kerala")}</div>
+            <div class="bb-field"><span class="lbl">State Code :</span> ${esc(COMPANY.stateCode || "32")}</div>
+            <div class="bb-field"><span class="lbl">PIN Code :</span> ${esc(COMPANY.pincode || "673591")}</div>
           </div>
         </div>
         <div>
-          <div class="bb-field"><span class="lbl">Transportation Mode :</span> <span class="bb-fill"></span></div>
+          <div class="bb-field" style="margin-top: 22px;"><span class="lbl">Transportation Mode :</span> <span class="bb-fill"></span></div>
           <div class="bb-field"><span class="lbl">Vehicle No :</span> <span class="bb-fill"></span></div>
           <div class="bb-field"><span class="lbl">Date &amp; Time of Supply :</span> <span class="bb-fill"></span></div>
           <div class="bb-field"><span class="lbl">Place of Supply :</span> <span class="bb-fill"></span></div>
@@ -71,12 +76,13 @@ export async function render(): Promise<void> {
 
       <!-- Details of receiver -->
       <div class="bb-receiver">
-        <div class="bb-section-label">Details of Receiver (Billed to)</div>
+        <div class="bb-section-label">Bill To</div>
         <div class="bb-field"><span class="lbl">Name :</span> <span class="bb-fill wide"></span></div>
         <div class="bb-field"><span class="lbl">Address :</span> <span class="bb-fill wide"></span></div>
         <div class="bb-inline-pair">
           <div class="bb-field"><span class="lbl">State :</span> <span class="bb-fill"></span></div>
-          <div class="bb-field"><span class="lbl">Pin Code :</span> <span class="bb-fill"></span></div>
+          <div class="bb-field"><span class="lbl">State Code :</span> <span class="bb-fill"></span></div>
+          <div class="bb-field"><span class="lbl">PIN Code :</span> <span class="bb-fill"></span></div>
           <div class="bb-field"><span class="lbl">GSTIN :</span> <span class="bb-fill"></span></div>
         </div>
         <div class="bb-inline-pair">
@@ -89,23 +95,27 @@ export async function render(): Promise<void> {
       <table class="bb-table">
         <thead>
           <tr>
-            <th>Sl. No.</th>
-            <th>Name of product</th>
-            <th>HSN</th>
-            <th>Qty in Kgs.</th>
-            <th>Rate/per KG</th>
-            <th>Amount</th>
-            <th>Total</th>
+            <th class="ctr" style="width: 45px;">Sl. No.</th>
+            <th>Name of Product</th>
+            <th class="ctr" style="width: 70px;">HSN</th>
+            <th class="num" style="width: 75px;">Qty (kg)</th>
+            <th class="num" style="width: 75px;">Rate</th>
+            <th class="num" style="width: 90px;">Taxable Value</th>
+            <th class="num" style="width: 70px;">CGST</th>
+            <th class="num" style="width: 70px;">SGST</th>
+            <th class="num" style="width: 90px;">Total</th>
           </tr>
         </thead>
         <tbody>${itemRows}</tbody>
         <tfoot>
           <tr>
             <td></td>
-            <td>Total</td>
+            <td><strong>Total</strong></td>
             <td></td>
             <td class="num"></td>
             <td></td>
+            <td class="num"></td>
+            <td class="num"></td>
             <td class="num"></td>
             <td class="num"></td>
           </tr>
@@ -129,8 +139,6 @@ export async function render(): Promise<void> {
             <div class="bb-terms-head">Terms &amp; Conditions</div>
             <ol>
               <li>Goods once sold will not be taken back or exchanged.</li>
-              <li>Subject to Wayanad jurisdiction only.</li>
-              <li>E. &amp; O.E.</li>
             </ol>
           </div>
         </section>
@@ -142,8 +150,7 @@ export async function render(): Promise<void> {
         <section>
           <div class="bb-amounts">
             <div class="bb-field"><span class="lbl">Total Amount :</span> <span class="bb-fill"></span></div>
-            <div class="bb-field"><span class="lbl">Less Discount :</span> <span class="bb-fill"></span></div>
-            <div class="bb-field bb-total-value"><span class="lbl">Total Value :</span> <span class="bb-fill"></span></div>
+            <div class="bb-field bb-total-value"><span class="lbl">Grand Total :</span> <span class="bb-fill"></span></div>
           </div>
           <p class="bb-cert">Certified that the particulars given above are true and correct.</p>
           <p class="bb-for">for, ${esc(COMPANY.name)}</p>

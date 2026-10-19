@@ -237,6 +237,7 @@ billsRouter.get("/formal/:fixingId", async (req, res, next) => {
         pincode: company.pincode || "673591",
         phone: company.phone,
         state: company.state,
+        stateCode: company.stateCode || "32",
       },
       party: {
         name: fixing.lot.party.name,
