@@ -17,9 +17,8 @@ export async function render(): Promise<void> {
 
   // The pre-printed serial advances with each blank sheet pulled from the
   // book. It is drawn from the same BillSequence counters the app bills from,
-  // so the manual book and the digital bills never collide.
   const serial = await api.get<{ serial: string; next: string }>("/bills/book-serial");
-  document.title = `Tax Invoice Cum Bill of Supply ${serial.serial} · ${COMPANY.name}`;
+  document.title = `Blank Tax Invoice Cum Bill of Supply · ${COMPANY.name}`;
 
   const itemRows = Array.from({ length: EMPTY_ROWS }, () => `
       <tr>
@@ -48,6 +47,9 @@ export async function render(): Promise<void> {
     <div class="print-bar no-print">
       <button class="btn secondary" onclick="goBack()">Back</button>
       <button class="btn secondary" onclick="window.close()">Close</button>
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; cursor:pointer;">
+        <input type="checkbox" id="toggle-serial"> Pre-fill Serial (${esc(serial.serial)})
+      </label>
       <button class="btn gold" onclick="window.print()">Print Blank Bill Book</button>
     </div>
 
@@ -68,7 +70,7 @@ export async function render(): Promise<void> {
       <div class="bb-info">
         <div>
           <div class="bb-section-label" style="font-weight: 700; margin-bottom: 4px;">Invoice Details:</div>
-          <div class="bb-field"><span class="lbl">Invoice Number :</span> <span class="bb-serial">${esc(serial.serial)}</span> <span class="bb-fill"></span></div>
+          <div class="bb-field"><span class="lbl">Invoice Number :</span> <span id="inv-num-box" class="bb-fill wide"></span></div>
           <div class="bb-field"><span class="lbl">Invoice Date :</span> <span class="bb-fill"></span></div>
           <div class="bb-inline-pair">
             <div class="bb-field"><span class="lbl">State :</span> ${esc(COMPANY.state || "Kerala")}</div>
@@ -170,4 +172,19 @@ export async function render(): Promise<void> {
       </div>
     </div>
   `;
+
+  const toggle = document.getElementById("toggle-serial") as HTMLInputElement | null;
+  if (toggle) {
+    toggle.addEventListener("change", () => {
+      const box = document.getElementById("inv-num-box");
+      if (!box) return;
+      if (toggle.checked) {
+        box.className = "bb-serial";
+        box.textContent = serial.serial;
+      } else {
+        box.className = "bb-fill wide";
+        box.textContent = "";
+      }
+    });
+  }
 }

@@ -40,14 +40,23 @@ export async function getNextBillNo(prefix: string, dateInput?: Date | string | 
  * from the same FY counter as everything else. Returns the number drawn and
  * the following one, so the form can show both.
  */
-export async function getNextBookSerial(): Promise<{ serial: string; next: string }> {
+export async function getNextBookSerial(increment = false): Promise<{ serial: string; next: string }> {
   const fy = getCurrentFY();
 
-  const seq = await prisma.billSequence.upsert({
+  let seq = await prisma.billSequence.findUnique({
     where: { prefix_financialYear: { prefix: "BB", financialYear: fy } },
-    update: { lastNumber: { increment: 1 } },
-    create: { prefix: "BB", financialYear: fy, lastNumber: 1 },
   });
+
+  if (!seq) {
+    seq = await prisma.billSequence.create({
+      data: { prefix: "BB", financialYear: fy, lastNumber: 1 },
+    });
+  } else if (increment) {
+    seq = await prisma.billSequence.update({
+      where: { prefix_financialYear: { prefix: "BB", financialYear: fy } },
+      data: { lastNumber: { increment: 1 } },
+    });
+  }
 
   const n = seq.lastNumber;
   return {
