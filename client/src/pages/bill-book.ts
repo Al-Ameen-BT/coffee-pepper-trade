@@ -96,6 +96,10 @@ export async function render(): Promise<void> {
           <div class="bb-field"><span class="lbl">PIN Code :</span> <span class="bb-fill"></span></div>
           <div class="bb-field"><span class="lbl">GSTIN :</span> <span class="bb-fill"></span></div>
         </div>
+        <div class="bb-inline-pair">
+          <div class="bb-field"><span class="lbl">From :</span> <span class="bb-fill"></span></div>
+          <div class="bb-field"><span class="lbl">To :</span> <span class="bb-fill"></span></div>
+        </div>
       </div>
 
       <!-- Product table -->

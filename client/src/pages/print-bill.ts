@@ -88,30 +88,41 @@ export async function render(): Promise<void> {
         </div>
         <div class="bb-gstin">GSTIN: ${esc(COMPANY.gstin)}</div>
 
-        <!-- Top Information Block -->
+        <!-- Top Information: two ruled columns -->
         <div class="bb-info">
           <div>
-            <div class="bb-field"><span class="lbl">${isPurchase ? "Supplier Details:" : "Bill To:"}</span></div>
-            <div class="bb-field"><span class="lbl">Name:</span> <strong>${esc(party.name)}</strong></div>
-            <div class="bb-field"><span class="lbl">Address:</span> <span>${esc(party.address || "—")}</span></div>
-            ${party.place ? `<div class="bb-field"><span class="lbl">Place:</span> <span>${esc(party.place)}</span></div>` : ""}
+            <div class="bb-section-label" style="font-weight: 700; margin-bottom: 4px;">Invoice Details:</div>
+            <div class="bb-field"><span class="lbl">Invoice Number :</span> <span class="bb-serial">${esc(data.billNo)}</span></div>
+            <div class="bb-field"><span class="lbl">Invoice Date :</span> <strong>${esc(data.dateTime || data.date)}</strong></div>
             <div class="bb-inline-pair">
-              <div class="bb-field"><span class="lbl">State:</span> <span>${esc(party.state || "Kerala")}</span></div>
-              <div class="bb-field"><span class="lbl">State Code:</span> <span>${esc(party.stateCode || "32")}</span></div>
-              <div class="bb-field"><span class="lbl">PIN Code:</span> <span>${esc(party.pincode || "—")}</span></div>
+              <div class="bb-field"><span class="lbl">State :</span> ${esc(COMPANY.state || "Kerala")}</div>
+              <div class="bb-field"><span class="lbl">State Code :</span> ${esc(COMPANY.stateCode || "32")}</div>
+              <div class="bb-field"><span class="lbl">PIN Code :</span> ${esc(COMPANY.pincode || "673591")}</div>
             </div>
-            <div class="bb-field"><span class="lbl">GSTIN:</span> <span>${esc(party.gstin || "Unregistered")}</span></div>
           </div>
           <div>
-            <div class="bb-field"><span class="lbl">Invoice Details:</span></div>
-            <div class="bb-field"><span class="lbl">Invoice Number:</span> <span class="bb-serial">${esc(data.billNo)}</span></div>
-            <div class="bb-field"><span class="lbl">Invoice Date:</span> <strong>${esc(data.dateTime || data.date)}</strong></div>
-            <div class="bb-inline-pair">
-              <div class="bb-field"><span class="lbl">State:</span> <span>${esc(COMPANY.state || "Kerala")}</span></div>
-              <div class="bb-field"><span class="lbl">State Code:</span> <span>${esc(COMPANY.stateCode || "32")}</span></div>
-              <div class="bb-field"><span class="lbl">PIN Code:</span> <span>${esc(COMPANY.pincode || "673591")}</span></div>
-            </div>
-            <div class="bb-field"><span class="lbl">Transaction:</span> <span>${isPurchase ? "Purchase Invoice" : "Sales Invoice"}</span></div>
+            <div class="bb-section-label" style="font-weight: 700; margin-bottom: 4px;">Transport &amp; Supply:</div>
+            <div class="bb-field"><span class="lbl">Transportation Mode :</span> <span>Road</span></div>
+            <div class="bb-field"><span class="lbl">Vehicle No :</span> <span>${esc(data.vehicleNo || "—")}</span></div>
+            <div class="bb-field"><span class="lbl">Date &amp; Time of Supply :</span> <span>${esc(data.dateTime || data.date)}</span></div>
+            <div class="bb-field"><span class="lbl">Place of Supply :</span> <span>${esc(party.state || "Kerala")} (${esc(party.stateCode || "32")})</span></div>
+          </div>
+        </div>
+
+        <!-- Details of receiver (Bill To) -->
+        <div class="bb-receiver">
+          <div class="bb-section-label">Bill To</div>
+          <div class="bb-field"><span class="lbl">Name :</span> <strong>${esc(party.name)}</strong></div>
+          <div class="bb-field"><span class="lbl">Address :</span> <span>${esc(party.address || "—")}${party.place ? `, ${esc(party.place)}` : ""}</span></div>
+          <div class="bb-inline-pair">
+            <div class="bb-field"><span class="lbl">State :</span> <span>${esc(party.state || "Kerala")}</span></div>
+            <div class="bb-field"><span class="lbl">State Code :</span> <span>${esc(party.stateCode || "32")}</span></div>
+            <div class="bb-field"><span class="lbl">PIN Code :</span> <span>${esc(party.pincode || "—")}</span></div>
+            <div class="bb-field"><span class="lbl">GSTIN :</span> <span>${esc(party.gstin || "Unregistered")}</span></div>
+          </div>
+          <div class="bb-inline-pair">
+            <div class="bb-field"><span class="lbl">From :</span> <span>Kariambadi, Wayanad</span></div>
+            <div class="bb-field"><span class="lbl">To :</span> <span>${esc(party.place || party.address || "—")}</span></div>
           </div>
         </div>
 
@@ -147,6 +158,16 @@ export async function render(): Promise<void> {
               <td class="num"></td>
             </tr>`).join("")}
           </tbody>
+          <tfoot>
+            <tr>
+              <td></td>
+              <td><strong>Total</strong></td>
+              <td></td>
+              <td class="num"><strong>${kg(item.qty)}</strong></td>
+              <td></td>
+              <td class="num"><strong>${money(item.total)}</strong></td>
+            </tr>
+          </tfoot>
         </table>
         ` : `
         <table class="bb-table">
@@ -188,48 +209,61 @@ export async function render(): Promise<void> {
               <td class="num"></td>
             </tr>`).join("")}
           </tbody>
+          <tfoot>
+            <tr>
+              <td></td>
+              <td><strong>Total</strong></td>
+              <td></td>
+              <td class="num"><strong>${kg(item.qty)}</strong></td>
+              <td></td>
+              <td class="num"><strong>${money(data.taxableValue)}</strong></td>
+              <td class="num"><strong>${money(data.cgstAmount)}</strong></td>
+              <td class="num"><strong>${money(data.sgstAmount)}</strong></td>
+              <td class="num"><strong>${money(data.taxableValue + data.cgstAmount + data.sgstAmount)}</strong></td>
+            </tr>
+          </tfoot>
         </table>
         `}
 
-        <!-- Tax & Summary Breakdown -->
-        <div class="bill-summary-wrap">
-          <div class="bill-rcm-block">
-            <div><span class="lbl">Amount of Tax Subject To Reverse Charge:</span> <strong>₹ 0.00 (No)</strong></div>
-            ${data.tcsAmount > 0 ? `<div><span class="lbl">TCS (${data.tcsRate}%):</span> <strong>${money(data.tcsAmount)}</strong></div>` : ""}
-            ${data.tdsAmount > 0 ? `<div><span class="lbl">Less TDS (${data.tdsRate}%):</span> <strong>− ${money(data.tdsAmount)}</strong></div>` : ""}
-          </div>
-          <table class="bill-tax-table">
-            <tr>
-              <td>Taxable Value:</td>
-              <td class="num">${money(data.taxableValue)}</td>
-            </tr>
-            <tr>
-              <td>CGST (${data.cgstRate}%):</td>
-              <td class="num">${money(data.cgstAmount)}</td>
-            </tr>
-            <tr>
-              <td>SGST (${data.sgstRate}%):</td>
-              <td class="num">${money(data.sgstAmount)}</td>
-            </tr>
-            <tr class="grand-row">
-              <td><strong>Grand Total:</strong></td>
-              <td class="num"><strong>${money(data.grandTotal)}</strong></td>
-            </tr>
-          </table>
-        </div>
+        <!-- Bottom summary -->
+        <div class="bb-bottom">
+          <section>
+            <div class="bb-words">
+              <span class="lbl"><strong>Total Amount in Words:</strong></span>
+              <div style="font-weight: 600; margin-top: 4px; font-size: 11.5px; line-height: 1.3;">${esc(data.amountInWords || "")}</div>
+            </div>
+            <div class="bb-bank">
+              <div class="bb-field"><span class="lbl">Bank Name :</span> <strong>${esc(COMPANY.bankName || "—")}</strong></div>
+              <div class="bb-field"><span class="lbl">Bank A/c. No :</span> <strong>${esc(COMPANY.bankAccount || "—")}</strong></div>
+              <div class="bb-field"><span class="lbl">Branch IFSC :</span> <strong>${esc(COMPANY.bankIfsc || "—")}</strong></div>
+            </div>
+            <div class="bb-terms">
+              <div class="bb-terms-head">Terms &amp; Conditions</div>
+              <ol>
+                <li>Goods once sold will not be taken back or exchanged.</li>
+              </ol>
+            </div>
+          </section>
 
-        <!-- Footer / Signature -->
-        <div class="bill-footer-wrap">
-          <div class="bb-terms" style="font-size: 11.5px; text-align: left;">
-            <div class="bb-terms-head" style="font-weight: 700; text-decoration: underline; margin-bottom: 2px;">Terms &amp; Conditions</div>
-            <ol style="margin: 0; padding-left: 16px;">
-              <li>Goods once sold will not be taken back or exchanged.</li>
-            </ol>
-          </div>
-          <div class="bill-sig-box">
-            <p>for, <strong>${esc(COMPANY.name)}</strong></p>
-            <div class="bill-sig-line">Authorised Signature</div>
-          </div>
+          <section class="bb-seal">
+            <div class="bb-seal-box">Seal</div>
+          </section>
+
+          <section>
+            <div class="bb-amounts">
+              <div class="bb-field" style="display:flex; justify-content:space-between;"><span class="lbl">Taxable Value :</span> <strong>${money(data.taxableValue)}</strong></div>
+              ${!isPurchase ? `
+              <div class="bb-field" style="display:flex; justify-content:space-between;"><span class="lbl">CGST (${data.cgstRate}%) :</span> <strong>${money(data.cgstAmount)}</strong></div>
+              <div class="bb-field" style="display:flex; justify-content:space-between;"><span class="lbl">SGST (${data.sgstRate}%) :</span> <strong>${money(data.sgstAmount)}</strong></div>
+              ` : ""}
+              ${data.tcsAmount > 0 ? `<div class="bb-field" style="display:flex; justify-content:space-between;"><span class="lbl">TCS (${data.tcsRate}%) :</span> <strong>${money(data.tcsAmount)}</strong></div>` : ""}
+              ${data.tdsAmount > 0 ? `<div class="bb-field" style="display:flex; justify-content:space-between;"><span class="lbl">Less TDS (${data.tdsRate}%) :</span> <strong>− ${money(data.tdsAmount)}</strong></div>` : ""}
+              <div class="bb-field bb-total-value" style="display:flex; justify-content:space-between;"><span class="lbl">Grand Total :</span> <strong>${money(data.grandTotal)}</strong></div>
+            </div>
+            <p class="bb-cert">Certified that the particulars given above are true and correct.</p>
+            <p class="bb-for">for, ${esc(COMPANY.name)}</p>
+            <p class="bb-sign">(Authorised Signatory)</p>
+          </section>
         </div>
       </div>
     `;

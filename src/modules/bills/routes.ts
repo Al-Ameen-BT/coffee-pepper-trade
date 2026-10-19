@@ -5,6 +5,7 @@ import { ApiError } from "../../lib/errorHandler.js";
 import { partyTrade } from "../../lib/compute.js";
 import { getCompanyInfo } from "../../lib/company.js";
 import { getNextBookSerial, getNextBillNo } from "../../lib/billSequence.js";
+import { amountInWords } from "../../lib/amountInWords.js";
 import type { PartyBill, BillRecordDTO } from "../../../shared/types.js";
 
 export const billsRouter = Router();
@@ -253,7 +254,11 @@ billsRouter.get("/formal/:fixingId", async (req, res, next) => {
         phone: company.phone,
         state: company.state,
         stateCode: company.stateCode || "32",
+        bankName: company.bankName,
+        bankAccount: company.bankAccount,
+        bankIfsc: company.bankIfsc,
       },
+      amountInWords: amountInWords(grandTotal),
       party: {
         name: fixing.lot.party.name,
         address: fixing.lot.party.address || "",
