@@ -51,7 +51,7 @@ export async function createInvoiceFromFixings(
 
   const lines = billable.map((f: any) => {
     const amount = round2(f.kg * f.rate);
-    const rate = f.lot.item.cgstRate || 0;
+    const rate = f.lot.item.cgstRate !== undefined && f.lot.item.cgstRate !== null ? f.lot.item.cgstRate : 2.5;
     const { cgstAmount, sgstAmount } = splitCgstSgst(amount, rate);
     return {
       fixingId: f.id,

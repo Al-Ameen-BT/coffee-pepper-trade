@@ -13,55 +13,84 @@ export async function render(): Promise<void> {
     ? items
         .map((it) => {
           const cgst = it.cgstRate ?? 2.5;
-          const sgst = it.sgstRate ?? cgst;
           const totalGst = it.gstRate ?? cgst * 2;
+          const isStandard5 = Math.abs(totalGst - 5) < 0.01;
+          const isStandard12 = Math.abs(totalGst - 12) < 0.01;
+          const isStandard18 = Math.abs(totalGst - 18) < 0.01;
+          const isStandard28 = Math.abs(totalGst - 28) < 0.01;
+          const isExempt0 = Math.abs(totalGst) < 0.01;
+          const isCustom = !isStandard5 && !isStandard12 && !isStandard18 && !isStandard28 && !isExempt0;
+
           return `
-      <tr>
-        <td><strong>${esc(it.name)}</strong></td>
-        <td><code>${esc(it.hsnCode || "—")}</code></td>
-        <td class="num">${cgst.toFixed(2)}%</td>
-        <td class="num">${sgst.toFixed(2)}%</td>
-        <td class="num"><span class="tag gold">${totalGst.toFixed(2)}%</span></td>
+      <tr id="row-${it.id}">
         <td>
-          <div style="display:flex; gap:6px; justify-content:flex-end;">
-            <button class="btn secondary sm" data-edit-item="${it.id}">Edit GST &amp; HSN</button>
+          <strong>${esc(it.name)}</strong>
+          <div class="note" style="font-size:11px;">DB ID: ${esc(it.id)}</div>
+        </td>
+        <td>
+          <input type="text" id="hsn-${it.id}" value="${esc(it.hsnCode || "")}" placeholder="e.g. 0901" style="width:90px; padding:4px 6px; border:1px solid #cbd5e1; border-radius:4px; font-weight:600;">
+        </td>
+        <td>
+          <select id="rate-sel-${it.id}" style="padding:4px 8px; border:1px solid #cbd5e1; border-radius:4px; font-weight:600; background:#fff; font-size:12.5px;">
+            <option value="5" ${isStandard5 ? "selected" : ""}>5% GST (2.5% CGST + 2.5% SGST)</option>
+            <option value="12" ${isStandard12 ? "selected" : ""}>12% GST (6.0% CGST + 6.0% SGST)</option>
+            <option value="18" ${isStandard18 ? "selected" : ""}>18% GST (9.0% CGST + 9.0% SGST)</option>
+            <option value="28" ${isStandard28 ? "selected" : ""}>28% GST (14.0% CGST + 14.0% SGST)</option>
+            <option value="0" ${isExempt0 ? "selected" : ""}>0% GST (Tax Exempt / Nil)</option>
+            <option value="custom" ${isCustom ? "selected" : ""}>Custom Rate...</option>
+          </select>
+        </td>
+        <td class="num">
+          <span id="cgst-lbl-${it.id}" style="font-weight:600;">${cgst.toFixed(2)}%</span>
+        </td>
+        <td class="num">
+          <span id="sgst-lbl-${it.id}" style="font-weight:600;">${cgst.toFixed(2)}%</span>
+        </td>
+        <td class="num">
+          <span class="tag gold" id="total-badge-${it.id}">${totalGst.toFixed(2)}%</span>
+        </td>
+        <td>
+          <div style="display:flex; gap:6px; justify-content:flex-end; align-items:center;">
+            <button class="btn gold sm" data-quick-save="${it.id}">Save to DB</button>
+            <button class="btn secondary sm" data-edit-item="${it.id}">Custom</button>
           </div>
         </td>
       </tr>`;
         })
         .join("")
-    : `<tr><td colspan="6" class="empty">No products configured yet.</td></tr>`;
+    : `<tr><td colspan="7" class="empty">No products found in the application database.</td></tr>`;
 
   renderShell(`
     <div class="topbar">
       <div>
         <h2>Company &amp; GST Settings</h2>
-        <p>Business identity, products, customized GST / CGST rates, and tax application rules.</p>
-      </div>
-      <div class="actions">
-        <button class="btn gold" id="add-product-btn">+ Add Product</button>
+        <p>Manage business details and customize GST / CGST rates for products in the database.</p>
       </div>
     </div>
 
     <div class="stack" style="gap: var(--s4);">
       <!-- Products & GST Rates Management Card -->
       <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: var(--s3);">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: var(--s3); flex-wrap:wrap; gap:8px;">
           <div>
-            <h3>Products &amp; Customized GST Rates</h3>
-            <p class="note" style="margin:2px 0 0;">Configure specific HSN codes, CGST, and SGST rates per product for automatic tax calculation on sales bills.</p>
+            <h3 style="margin:0;">Products &amp; Customized GST Rates (Database Level)</h3>
+            <p class="note" style="margin:4px 0 0;">
+              Select and customize the GST / CGST rate for each product listed in the application DB.
+              <strong>Whenever an invoice or bill is generated for a product, it will automatically follow the GST rate set here.</strong>
+            </p>
           </div>
-          <button class="btn gold sm" id="add-product-btn-2">+ Add Product</button>
+          <button class="btn gold sm" id="add-product-btn" type="button">+ Add Product</button>
         </div>
 
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th scope="col">Product Name</th>
+                <th scope="col">Product Name (DB)</th>
                 <th scope="col">HSN / SAC</th>
-                <th scope="col" class="num">CGST Rate</th>
-                <th scope="col" class="num">SGST Rate</th>
+                <th scope="col">Select GST Rate</th>
+                <th scope="col" class="num">CGST %</th>
+                <th scope="col" class="num">SGST %</th>
                 <th scope="col" class="num">Total GST</th>
                 <th scope="col"><span class="sr-only">Actions</span></th>
               </tr>
@@ -76,10 +105,10 @@ export async function render(): Promise<void> {
       <!-- Specification: Where GST values are applied on invoices & bills -->
       <div class="card" style="border-left: 4px solid var(--gold); background: #fdfcf9;">
         <h3 style="display:flex; align-items:center; gap:8px;">
-          <span>📋</span> Specification: Where GST Values Apply on Invoices &amp; Bills
+          <span>📋</span> How Invoices Follow the Setted GST
         </h3>
         <p style="margin: 6px 0 16px; color: #555; font-size: 13.5px;">
-          GST tax rules and how product-level CGST &amp; SGST rates are applied across documents:
+          Every invoice generated for a product pulls its tax rate directly from the database table:
         </p>
 
         <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
@@ -90,20 +119,15 @@ export async function render(): Promise<void> {
               <strong>Tax Invoice Cum Bill of Supply</strong>
             </div>
             <ul style="font-size:12.5px; line-height:1.6; margin:0; padding-left:18px; color:#333;">
+              <li><strong>Database Lookup:</strong> The bill inspects <code>fixing.lot.item.cgstRate</code> from the database.</li>
               <li><strong>Item Row Calculation:</strong>
                 <br>• Taxable Value = <code>Quantity (kg) × Rate (₹/kg)</code>
-                <br>• <strong>CGST Amount</strong> = <code>Taxable Value × CGST Rate %</code>
-                <br>• <strong>SGST Amount</strong> = <code>Taxable Value × SGST Rate %</code>
+                <br>• <strong>CGST Amount</strong> = <code>Taxable Value × DB CGST%</code>
+                <br>• <strong>SGST Amount</strong> = <code>Taxable Value × DB SGST%</code>
                 <br>• Row Total = <code>Taxable Value + CGST + SGST</code>
               </li>
-              <li style="margin-top:6px;"><strong>Table Headers:</strong> Dynamically state the applied rates: <code>CGST (2.5%)</code> and <code>SGST (2.5%)</code> based on the product.</li>
-              <li style="margin-top:6px;"><strong>Bottom Summary:</strong>
-                <br>• <strong>Taxable Value:</strong> Sum of line amounts
-                <br>• <strong>CGST (X%):</strong> Total central tax
-                <br>• <strong>SGST (X%):</strong> Total state tax
-                <br>• <strong>TCS / TDS:</strong> Added or deducted if applicable
-                <br>• <strong>Grand Total:</strong> <code>Taxable + CGST + SGST + TCS − TDS</code>
-              </li>
+              <li style="margin-top:6px;"><strong>Table Headers:</strong> Dynamically display the setted rate: <code>CGST (${items[0]?.cgstRate ?? 2.5}%)</code> &amp; <code>SGST (${items[0]?.cgstRate ?? 2.5}%)</code>.</li>
+              <li style="margin-top:6px;"><strong>Grand Total:</strong> $\text{Taxable} + \text{CGST} + \text{SGST} + \text{TCS} - \text{TDS}$ (converted to words automatically).</li>
             </ul>
           </div>
 
@@ -114,12 +138,11 @@ export async function render(): Promise<void> {
               <strong>Purchase Invoice (Unregistered)</strong>
             </div>
             <ul style="font-size:12.5px; line-height:1.6; margin:0; padding-left:18px; color:#333;">
-              <li><strong>Farmer / Supplier Billing:</strong> Purchases from farmers or unregistered vendors do <em>not</em> include GST charged by the supplier.</li>
+              <li><strong>Farmer / Supplier Billing:</strong> Purchases from unregistered farmers do not include supplier GST.</li>
               <li style="margin-top:6px;"><strong>Reverse Charge Mechanism (RCM):</strong>
-                <br>• Governed under <strong>Section 9(4) / 9(3)</strong> of the CGST Act.
-                <br>• Raw agricultural produce (raw green coffee, raw dried pepper) from agriculturists is <strong>Nil / Exempt</strong> from reverse charge.
+                <br>• Governed under <strong>Section 9(4)</strong> of the CGST Act.
+                <br>• Raw agricultural produce (raw coffee, green/dried pepper) from agriculturists is <strong>Nil / Exempt</strong>.
               </li>
-              <li style="margin-top:6px;"><strong>Table Columns:</strong> Sl. No., Description, HSN/SAC, Quantity, Rate/kg, and Total (no GST Rate column).</li>
               <li style="margin-top:6px;"><strong>Payable Amount:</strong> Gross goods value minus TDS plus TCS. Total Amount in Words matches payable value.</li>
             </ul>
           </div>
@@ -184,6 +207,79 @@ export async function render(): Promise<void> {
       toast(err instanceof Error ? err.message : "Failed to save", "error");
       saveBtn.disabled = false;
     }
+  });
+
+  // Wire Row-level Rate Dropdowns
+  items.forEach((item) => {
+    const sel = document.getElementById(`rate-sel-${item.id}`) as HTMLSelectElement | null;
+    const cgstLbl = document.getElementById(`cgst-lbl-${item.id}`);
+    const sgstLbl = document.getElementById(`sgst-lbl-${item.id}`);
+    const totalBadge = document.getElementById(`total-badge-${item.id}`);
+
+    if (sel) {
+      sel.addEventListener("change", () => {
+        if (sel.value === "custom") {
+          showItemModal(item);
+          return;
+        }
+        const total = Number(sel.value) || 0;
+        const half = Math.round((total / 2) * 100) / 100;
+        if (cgstLbl) cgstLbl.textContent = `${half.toFixed(2)}%`;
+        if (sgstLbl) sgstLbl.textContent = `${half.toFixed(2)}%`;
+        if (totalBadge) totalBadge.textContent = `${total.toFixed(2)}%`;
+      });
+    }
+  });
+
+  // Wire Quick Save to DB buttons
+  document.querySelectorAll("[data-quick-save]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = (btn as HTMLElement).dataset.quickSave!;
+      const item = items.find((it) => it.id === id);
+      if (!item) return;
+
+      const sel = document.getElementById(`rate-sel-${id}`) as HTMLSelectElement | null;
+      const hsnInput = document.getElementById(`hsn-${id}`) as HTMLInputElement | null;
+      const saveBtn = btn as HTMLButtonElement;
+
+      let totalRate = item.gstRate ?? (item.cgstRate ?? 2.5) * 2;
+      if (sel && sel.value !== "custom") {
+        totalRate = Number(sel.value);
+      }
+      const cgstRate = Math.round((totalRate / 2) * 100) / 100;
+      const hsnCode = hsnInput ? hsnInput.value.trim() : (item.hsnCode || "");
+
+      saveBtn.disabled = true;
+      const originalText = saveBtn.textContent;
+      saveBtn.textContent = "Saving...";
+
+      try {
+        await api.put(`/items/${id}`, {
+          name: item.name,
+          hsnCode,
+          cgstRate,
+          gstRate: totalRate,
+        });
+        item.cgstRate = cgstRate;
+        item.sgstRate = cgstRate;
+        item.gstRate = totalRate;
+        item.hsnCode = hsnCode;
+
+        saveBtn.textContent = "Saved ✓";
+        saveBtn.style.background = "#2e7d32";
+        toast(`Updated "${item.name}" in DB: GST ${totalRate}% (CGST ${cgstRate}% + SGST ${cgstRate}%). Invoices will follow this rate.`, "success");
+
+        setTimeout(() => {
+          saveBtn.disabled = false;
+          saveBtn.textContent = originalText;
+          saveBtn.style.background = "";
+        }, 1500);
+      } catch (err) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText;
+        toast(err instanceof Error ? err.message : "Failed to update GST rate in DB", "error");
+      }
+    });
   });
 
   // Modal setup for Add / Edit Product
@@ -284,10 +380,8 @@ export async function render(): Promise<void> {
   }
 
   // Bind add button
-  const addBtn1 = document.getElementById("add-product-btn");
-  const addBtn2 = document.getElementById("add-product-btn-2");
-  if (addBtn1) addBtn1.addEventListener("click", () => showItemModal());
-  if (addBtn2) addBtn2.addEventListener("click", () => showItemModal());
+  const addBtn = document.getElementById("add-product-btn");
+  if (addBtn) addBtn.addEventListener("click", () => showItemModal());
 
   // Bind edit buttons
   document.querySelectorAll("[data-edit-item]").forEach((b) => {
