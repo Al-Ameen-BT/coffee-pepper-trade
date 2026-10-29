@@ -231,8 +231,8 @@ export async function render(): Promise<void> {
               <th class="num" style="width: 75px;">Qty (kg)</th>
               <th class="num" style="width: 75px;">Rate</th>
               <th class="num" style="width: 90px;">Taxable Value</th>
-              <th class="num" style="width: 70px;">CGST</th>
-              <th class="num" style="width: 70px;">SGST</th>
+              <th class="num" style="width: 75px;">CGST (${data.cgstRate}%)</th>
+              <th class="num" style="width: 75px;">SGST (${data.sgstRate}%)</th>
               <th class="num" style="width: 90px;">Total</th>
             </tr>
           </thead>
@@ -305,7 +305,7 @@ export async function render(): Promise<void> {
             <div class="bb-amounts">
               ${isPurchase ? `
               <div class="bb-field" style="display:flex; justify-content:space-between;"><span class="lbl">Gross Total :</span> <strong>${money(item.total)}</strong></div>
-              <div class="bb-field" style="display:flex; justify-content:space-between; font-size:11.5px;"><span class="lbl">Tax on Reverse Charge :</span> <strong>Nil / Exempt</strong></div>
+              <div class="bb-field" style="display:flex; justify-content:space-between; font-size:11.5px;"><span class="lbl">Tax on Reverse Charge (RCM) :</span> <strong>Nil / Exempt (Sec 9(4))</strong></div>
               ` : `
               <div class="bb-field" style="display:flex; justify-content:space-between;"><span class="lbl">Taxable Value :</span> <strong>${money(data.taxableValue)}</strong></div>
               <div class="bb-field" style="display:flex; justify-content:space-between;"><span class="lbl">CGST (${data.cgstRate}%) :</span> <strong>${money(data.cgstAmount)}</strong></div>

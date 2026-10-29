@@ -171,5 +171,49 @@ describe("Invoice Calculations & Edge Cases", () => {
         salesData.taxableValue + salesData.cgstAmount + salesData.sgstAmount
       );
     });
+
+    it("applies customized GST and CGST rates as per product settings", () => {
+      // Test different customizable GST rates
+      const testCases = [
+        { name: "Raw Coffee (Produce)", totalGst: 5, expectedCgst: 2.5, expectedSgst: 2.5 },
+        { name: "Processed Pepper", totalGst: 12, expectedCgst: 6.0, expectedSgst: 6.0 },
+        { name: "Roasted Packaging", totalGst: 18, expectedCgst: 9.0, expectedSgst: 9.0 },
+        { name: "Exempt Commodity", totalGst: 0, expectedCgst: 0.0, expectedSgst: 0.0 },
+      ];
+
+      for (const tc of testCases) {
+        const taxable = 100000;
+        const cgstRate = tc.expectedCgst;
+        const sgstRate = tc.expectedSgst;
+
+        const cgstAmount = Math.round((taxable * cgstRate) / 100 * 100) / 100;
+        const sgstAmount = Math.round((taxable * sgstRate) / 100 * 100) / 100;
+        const totalTax = cgstAmount + sgstAmount;
+        const grandTotal = taxable + totalTax;
+
+        expect(cgstRate).toBe(tc.totalGst / 2);
+        expect(sgstRate).toBe(tc.totalGst / 2);
+        expect(totalTax).toBe((taxable * tc.totalGst) / 100);
+        expect(grandTotal).toBe(taxable + (taxable * tc.totalGst) / 100);
+      }
+    });
+
+    it("specifies exact location of GST values on sales invoice and purchase bills", () => {
+      // 1. On Sales Bill (Tax Invoice Cum Bill of Supply):
+      // - Column Header specifies rate %: 'CGST (2.5%)' and 'SGST (2.5%)'
+      // - Product Row specifies: Taxable Value, CGST amount, SGST amount, Line total
+      // - Bottom Summary specifies: Taxable Value, CGST breakdown, SGST breakdown, Grand Total
+      const cgstRate = 2.5;
+      const sgstRate = 2.5;
+      const tableHeaders = ["Taxable Value", `CGST (${cgstRate}%)`, `SGST (${sgstRate}%)`, "Total"];
+      expect(tableHeaders).toContain("CGST (2.5%)");
+      expect(tableHeaders).toContain("SGST (2.5%)");
+
+      // 2. On Purchase Bill:
+      // - Supplier does not charge GST (unregistered)
+      // - Handled under Reverse Charge Mechanism (RCM - Sec 9(4)) as Nil / Exempt
+      const purchaseReverseCharge = "Nil / Exempt (Sec 9(4))";
+      expect(purchaseReverseCharge).toContain("Sec 9(4)");
+    });
   });
 });

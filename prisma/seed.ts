@@ -48,10 +48,10 @@ async function main() {
 
   // Create default items
   const defaultItems = [
-    { name: "Cherry Coffee", slug: "cherry-coffee", hsnCode: "0901", cgstRate: 5 },
-    { name: "Coffee Beans", slug: "coffee-beans", hsnCode: "0901", cgstRate: 5 },
-    { name: "Coffee", slug: "coffee", hsnCode: "0901", cgstRate: 5 },
-    { name: "Black Pepper", slug: "pepper", hsnCode: "0904", cgstRate: 5 },
+    { name: "Cherry Coffee", slug: "cherry-coffee", hsnCode: "0901", cgstRate: 2.5 },
+    { name: "Coffee Beans", slug: "coffee-beans", hsnCode: "0901", cgstRate: 2.5 },
+    { name: "Coffee", slug: "coffee", hsnCode: "0901", cgstRate: 2.5 },
+    { name: "Black Pepper", slug: "pepper", hsnCode: "0904", cgstRate: 2.5 },
   ];
 
   for (const item of defaultItems) {

@@ -6,10 +6,10 @@ export function splitCgstSgst(
   taxableValue: number,
   cgstRate: number,
 ): { cgstAmount: number; sgstAmount: number } {
-  const half = (taxableValue * cgstRate) / 100 / 2;
+  const tax = (taxableValue * cgstRate) / 100;
   return {
-    cgstAmount: round2(half),
-    sgstAmount: round2(half),
+    cgstAmount: round2(tax),
+    sgstAmount: round2(tax),
   };
 }
 

@@ -33,6 +33,10 @@ export interface ItemDTO {
   id: string;
   name: string;
   slug: string;
+  hsnCode?: string;
+  cgstRate?: number;
+  sgstRate?: number;
+  gstRate?: number;
 }
 
 export interface FundDTO {

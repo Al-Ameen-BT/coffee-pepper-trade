@@ -26,6 +26,7 @@ const routes: Record<string, RouteHandler> = {
   "/bill-register": () => import("./pages/bill-register.js").then((m) => m.render()),
   "/invoice/new": () => import("./pages/invoice-new.js").then((m) => m.render()),
   "/settings": () => import("./pages/settings.js").then((m) => m.render()),
+  "/items": () => import("./pages/settings.js").then((m) => m.render()),
 };
 
 function currentPath(): string {
@@ -81,7 +82,7 @@ const NAV_GROUPS: { label: string | null; links: { path: string; label: string }
   },
   {
     label: "System",
-    links: [{ path: "/settings", label: "Company Settings" }],
+    links: [{ path: "/settings", label: "Company & GST Settings" }],
   },
 ];
 
