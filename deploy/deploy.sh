@@ -164,7 +164,7 @@ fi
 
 # 5. Install dependencies (force install devDependencies for build tools like typescript and vite)
 echo "==> Installing dependencies (including build tools & type definitions)..."
-NODE_ENV=development npm install --include=dev
+NODE_ENV=development npm install --include=dev --legacy-peer-deps
 
 # 6. Generate Prisma Client & Sync DB schema with MySQL
 echo "==> Configuring Prisma schema for MySQL..."
