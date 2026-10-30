@@ -86,7 +86,13 @@ app.use(
       if (!origin) return callback(null, true);
       
       if (config.NODE_ENV === "production") {
-        if (origin === config.CLIENT_URL) {
+        const clientUrlHttp = config.CLIENT_URL.replace(/^https:\/\//, "http://");
+        const clientUrlHttps = config.CLIENT_URL.replace(/^http:\/\//, "https://");
+        if (
+          origin === config.CLIENT_URL ||
+          origin === clientUrlHttp ||
+          origin === clientUrlHttps
+        ) {
           return callback(null, true);
         }
         return callback(new Error("Not allowed by CORS"));

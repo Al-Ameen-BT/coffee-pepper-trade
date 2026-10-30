@@ -45,14 +45,30 @@ fi
 sudo systemctl enable mysql
 sudo systemctl restart mysql || sudo service mysql restart || true
 
-# 4. Install Node.js 20 LTS
-echo "[4/6] Installing Node.js 20 LTS..."
-if ! command -v node &> /dev/null; then
+# 4. Install Node.js 20 LTS & npm
+echo "[4/6] Installing and verifying Node.js 20 LTS & npm..."
+NODE_MIN_VERSION=20
+NEED_NODE_INSTALL=false
+if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+    NEED_NODE_INSTALL=true
+else
+    NODE_MAJOR=$(node -v | sed 's/v//' | cut -d. -f1)
+    if [ "${NODE_MAJOR}" -lt "${NODE_MIN_VERSION}" ]; then
+        echo "Existing Node.js $(node -v) is below v${NODE_MIN_VERSION}."
+        NEED_NODE_INSTALL=true
+    fi
+fi
+
+if [ "${NEED_NODE_INSTALL}" = true ]; then
     curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
     sudo apt install -y nodejs
-else
-    echo "Node.js already installed: $(node -v)"
 fi
+
+if ! command -v node &>/dev/null || ! command -v npm &>/dev/null; then
+    echo "ERROR: Node.js and npm verification failed." >&2
+    exit 1
+fi
+echo "Verified Node.js: $(node -v) and npm: $(npm -v)"
 
 # 5. Install PM2 process manager
 echo "[5/6] Installing PM2..."
