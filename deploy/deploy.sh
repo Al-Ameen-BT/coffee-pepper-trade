@@ -167,6 +167,13 @@ echo "==> Installing dependencies (including build tools & type definitions)..."
 NODE_ENV=development npm install --include=dev
 
 # 6. Generate Prisma Client & Sync DB schema with MySQL
+echo "==> Configuring Prisma schema for MySQL..."
+if [ -f "${ROOT_DIR}/prisma/schema.mysql.prisma" ]; then
+    cp "${ROOT_DIR}/prisma/schema.mysql.prisma" "${ROOT_DIR}/prisma/schema.prisma"
+else
+    sed -i -E 's/provider\s*=\s*"sqlite"/provider = "mysql"/' "${ROOT_DIR}/prisma/schema.prisma"
+fi
+
 echo "==> Updating database schema (MySQL)..."
 npm run db:generate
 npm run db:push
