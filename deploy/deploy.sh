@@ -28,6 +28,7 @@ fi
 # 1. Pull latest changes if running from a git repository
 if [ -d .git ]; then
     echo "==> Fetching git updates..."
+    git config --global --add safe.directory "${ROOT_DIR}" 2>/dev/null || true
     git pull origin main || echo "==> Note: git pull had warnings or local changes, continuing..."
 fi
 
@@ -55,7 +56,11 @@ if [ "${NEED_NODE_INSTALL}" = true ]; then
     echo "==> Installing / Updating Node.js ${NODE_MIN_VERSION}.x and npm from NodeSource..."
     $SUDO_CMD apt-get update
     $SUDO_CMD apt-get install -y ca-certificates curl gnupg build-essential
-    curl -fsSL https://deb.nodesource.com/setup_20.x | $SUDO_CMD -E bash -
+    if [ -n "${SUDO_CMD}" ]; then
+        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    else
+        curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    fi
     $SUDO_CMD apt-get install -y nodejs
 fi
 
