@@ -2,6 +2,7 @@ module.exports = {
   apps: [
     {
       name: "uzhunnungal-traders",
+      cwd: __dirname,
       script: "dist/src/index.js",
       instances: 1,
       autorestart: true,

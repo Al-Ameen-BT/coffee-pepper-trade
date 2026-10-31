@@ -4,6 +4,10 @@ import helmet from "helmet";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import { config } from "./config.js";
 import { wafMiddleware, apiRateLimiter, authRateLimiter } from "./middleware/waf.js";
 import { authRouter } from "./auth/routes.js";
@@ -160,8 +164,8 @@ if (config.NODE_ENV !== "production") {
 // Serve client build if available (production or pre-built fallback)
 const clientDistCandidates = [
   path.resolve(process.cwd(), "dist/client"),
-  path.resolve(import.meta.dirname, "../client"),
-  path.resolve(import.meta.dirname, "../../dist/client"),
+  path.resolve(__dirname, "../client"),
+  path.resolve(__dirname, "../../dist/client"),
 ];
 const clientDist = clientDistCandidates.find((dir) => fs.existsSync(path.join(dir, "index.html")));
 

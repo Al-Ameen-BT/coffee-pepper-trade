@@ -192,13 +192,13 @@ echo "==> Building application..."
 npm run build
 
 # 9. Start or reload PM2 process
-echo "==> Reloading PM2..."
+echo "==> Starting / Reloading PM2..."
 if pm2 list | grep -q "uzhunnungal-traders"; then
-    pm2 reload ecosystem.config.cjs --update-env
+    pm2 restart ecosystem.config.cjs --update-env
 else
     pm2 start ecosystem.config.cjs
-    pm2 save
 fi
+pm2 save
 
 # 10. Provision SSL Certificates (Certbot + Self-Signed Fallback) & Nginx Configuration
 echo "==> Configuring SSL Certificates and Nginx..."
@@ -311,7 +311,8 @@ echo "==> Nginx reverse proxy running with active SSL."
 echo "=========================================="
 echo " Deployment completed successfully!       "
 echo " Database: MySQL (${DB_NAME})             "
-echo " App URL:  https://${PUBLIC_IP}           "
-echo " Status:   pm2 status                     "
-echo " Logs:     pm2 logs uzhunnungal-traders   "
+echo " App (HTTP):  http://${PUBLIC_IP}         "
+echo " App (HTTPS): https://${PUBLIC_IP}        "
+echo " Status:      pm2 status                  "
+echo " Logs:        pm2 logs uzhunnungal-traders"
 echo "=========================================="
