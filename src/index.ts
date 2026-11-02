@@ -76,41 +76,47 @@ app.use((req, res, next) => {
   next();
 });
 
-const allowedOrigins = [
-  config.CLIENT_URL,
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-];
-
+// CORS Configuration: Allow same-host, configured CLIENT_URL, localhost, and LAN IPs
 app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      
-      if (config.NODE_ENV === "production") {
-        const clientUrlHttp = config.CLIENT_URL.replace(/^https:\/\//, "http://");
-        const clientUrlHttps = config.CLIENT_URL.replace(/^http:\/\//, "https://");
-        if (
-          origin === config.CLIENT_URL ||
-          origin === clientUrlHttp ||
-          origin === clientUrlHttps
-        ) {
-          return callback(null, true);
-        }
-        return callback(new Error("Not allowed by CORS"));
-      } else {
-        if (
-          allowedOrigins.includes(origin) ||
-          /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
-        ) {
-          return callback(null, true);
-        }
-        return callback(new Error("Not allowed by CORS"));
+  cors((req, callback) => {
+    const origin = req.header("Origin");
+    const host = req.header("Host");
+
+    // Direct / non-CORS requests
+    if (!origin) {
+      return callback(null, { origin: true, credentials: true });
+    }
+
+    // Same-origin check: if origin matches current host header
+    try {
+      const originUrl = new URL(origin);
+      if (host && (originUrl.host === host || originUrl.hostname === host.split(":")[0])) {
+        return callback(null, { origin: true, credentials: true });
       }
-    },
-    credentials: true,
+    } catch {
+      // Invalid origin URL
+    }
+
+    // Configured client URL (both HTTP and HTTPS)
+    const clientUrlHttp = config.CLIENT_URL.replace(/^https:\/\//, "http://");
+    const clientUrlHttps = config.CLIENT_URL.replace(/^http:\/\//, "https://");
+    if (
+      origin === config.CLIENT_URL ||
+      origin === clientUrlHttp ||
+      origin === clientUrlHttps
+    ) {
+      return callback(null, { origin: true, credentials: true });
+    }
+
+    // Localhost, loopback, and private LAN IP networks (10.x, 172.16-31.x, 192.168.x)
+    if (
+      /^https?:\/\/(localhost|127\.0\.0\.1|(10|192\.168)\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/.test(origin)
+    ) {
+      return callback(null, { origin: true, credentials: true });
+    }
+
+    // Safe rejection without throwing unhandled 500 Error
+    return callback(null, { origin: false, credentials: true });
   })
 );
 
