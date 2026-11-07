@@ -29,6 +29,7 @@ import { integrityMiddleware } from "./middleware/integrity.js";
 import { notFound } from "./lib/notFound.js";
 
 const app = express();
+const appVersion = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), "package.json"), "utf8")).version;
 
 // Trust Nginx reverse proxy headers for real client IP rate limiting
 app.set("trust proxy", 1);
@@ -66,7 +67,7 @@ app.use((req, res, next) => {
 
 app.use((req, res, next) => {
   if (config.FORCE_HTTPS && req.headers["x-forwarded-proto"] !== "https") {
-    return res.redirect(`https://${req.hostname}${req.url}`);
+    return res.redirect(`${config.CLIENT_URL}${req.url}`);
   }
   if (req.path.startsWith("/api")) {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
@@ -146,7 +147,7 @@ app.use("/api/v1/invoices", invoicesRouter);
 app.use("/api/v1/dashboard", dashboardRouter);
 
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  res.json({ status: "ok", version: appVersion, timestamp: new Date().toISOString() });
 });
 
 // Any unmatched /api route returns 404 JSON instead of HTML
@@ -185,7 +186,7 @@ if (clientDist) {
 app.use(notFound);
 app.use(errorHandler);
 
-app.listen(config.PORT, () => {
+app.listen(config.PORT, config.NODE_ENV === "production" ? "127.0.0.1" : "0.0.0.0", () => {
   console.log(`Uzhunnungal Traders API running on port ${config.PORT}`);
   console.log(`Environment: ${config.NODE_ENV}`);
 });

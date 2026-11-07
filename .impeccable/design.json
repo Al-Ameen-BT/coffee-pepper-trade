@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-06T11:00:00Z",
+  "generatedAt": "2026-11-07T07:05:17Z",
   "title": "Design System: Uzhunnungal Traders",
   "extensions": {
     "colorMeta": {
@@ -160,6 +160,7 @@
       { "name": "The One Nib Rule", "body": "Gold appears at most once per view as an action (the committing button) plus once as wayfinding (the active-nav inset). If two gold buttons compete on one screen, one of them is lying about being final — demote it to espresso or secondary.", "section": "colors" },
       { "name": "The No Foreign Grays Rule", "body": "Error, info, and neutral tints are derived from the palette (rose from danger, cream from card), never from office grays. Printed documents keep the same rule: espresso rules and paper-tinted headers, not black-and-gray.", "section": "colors" },
       { "name": "The Two Hands Rule", "body": "Fraunces never sets form controls, buttons, or table body text; Figtree never sets page titles or metrics. If a third voice appears (Helvetica, system display faces), it is a bug — print documents included.", "section": "typography" },
+      { "name": "The Own-Your-Axis Rule", "body": "If an element needs nudging with an inline margin, the stylesheet is missing a rule — add the class, delete the style attribute.", "section": "layout" },
       { "name": "The Flat Ink Rule", "body": "The sidebar and printed sheets never cast shadows. Ink sits on paper; it does not hover above it.", "section": "elevation" }
     ],
     "dos": [

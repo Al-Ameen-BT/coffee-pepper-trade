@@ -72,17 +72,8 @@ function containsMaliciousPayload(value: unknown): boolean {
   return false;
 }
 
-/**
- * Extracts client IP from x-forwarded-for or Express connection remoteAddress.
- */
+/** Uses Express's configured trusted proxy hop, never a client-supplied header prefix. */
 export function getClientIp(req: Request): string {
-  const forwarded = req.headers["x-forwarded-for"];
-  if (typeof forwarded === "string") {
-    return forwarded.split(",")[0].trim();
-  }
-  if (Array.isArray(forwarded) && forwarded.length > 0) {
-    return forwarded[0].trim();
-  }
   return req.ip || req.socket.remoteAddress || "127.0.0.1";
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "uzhunnungal-traders",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "Coffee & black pepper trading business management",
   "type": "module",
@@ -12,6 +12,7 @@
     "dev:client": "vite",
     "build": "tsc && vite build",
     "build:server": "tsc",
+    "version:check": "node scripts/check-version.mjs",
     "start": "node dist/src/index.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

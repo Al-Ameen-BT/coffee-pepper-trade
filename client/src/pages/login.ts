@@ -1,5 +1,6 @@
 import { login } from "../main.js";
 import { esc } from "../format.js";
+import { APP_VERSION } from "../version.js";
 
 export function renderLogin(): void {
   document.getElementById("app")!.innerHTML = `
@@ -19,6 +20,7 @@ export function renderLogin(): void {
           </label>
           <button class="btn gold block" type="submit">Sign In</button>
         </form>
+        <p class="app-version">Version ${APP_VERSION}</p>
       </div>
     </div>
   `;

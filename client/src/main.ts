@@ -1,5 +1,6 @@
 import { api, getToken, setToken, clearToken } from "./api.js";
 import { esc } from "./format.js";
+import { APP_VERSION } from "./version.js";
 import type { UserDTO } from "../../shared/types.js";
 // print.css is linked from index.html (not a JS import) so the strict CSP
 // style-src 'self' applies — Vite dev injects JS-imported CSS inline, which is blocked.
@@ -118,6 +119,7 @@ export function renderShell(content: string): void {
         </div>
         <nav aria-label="Main navigation">${nav}</nav>
         <div class="sidebar-footer">
+          <p class="app-version">Version ${APP_VERSION}</p>
           <button id="logout-btn" class="logout-btn" type="button" title="Log out of application">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>

@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "fraunces",
+        "createdAt": "2026-11-07T07:05:13.205Z",
+        "reason": "DESIGN.md: the existing design system assigns Fraunces to headings, metrics, brand, and print; this session did not change those font choices"
+      }
+    ]
+  }
+}

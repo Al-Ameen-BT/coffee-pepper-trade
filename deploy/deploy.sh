@@ -140,7 +140,8 @@ NODE_ENV=production
 JWT_SECRET=${JWT_SECRET}
 JWT_EXPIRES_IN=7d
 ENCRYPTION_KEY=${ENCRYPTION_KEY}
-CLIENT_URL=https://${PUBLIC_IP}
+FORCE_HTTPS=true
+CLIENT_URL=https://${PUBLIC_IP}:3424
 EOF
     echo "==> Created ${ROOT_DIR}/.env with MySQL configuration."
 else
@@ -200,7 +201,7 @@ else
 fi
 pm2 save
 
-# 10. Provision SSL Certificates (Certbot + Self-Signed Fallback) & Nginx Configuration
+# 10. Provision self-signed upstream TLS and Nginx configuration
 echo "==> Configuring SSL Certificates and Nginx..."
 
 # Ensure Nginx is installed
@@ -209,84 +210,33 @@ if ! command -v nginx &>/dev/null; then
     $SUDO_CMD apt-get update && $SUDO_CMD apt-get install -y nginx
 fi
 
-# Ensure Certbot is installed
-if ! command -v certbot &>/dev/null; then
-    echo "==> Installing Certbot..."
-    $SUDO_CMD apt-get update && $SUDO_CMD apt-get install -y certbot python3-certbot-nginx || true
-fi
-
 # Ensure SSL directories exist
-$SUDO_CMD mkdir -p /etc/ssl/certs /etc/ssl/private /var/www/certbot
+$SUDO_CMD mkdir -p /etc/ssl/certs /etc/ssl/private
 $SUDO_CMD chmod 700 /etc/ssl/private
-
-# Determine domain name from environment or .env if present
-APP_TARGET_DOMAIN="${DOMAIN:-${APP_DOMAIN:-}}"
-if [ -z "${APP_TARGET_DOMAIN}" ] && [ -n "${CLIENT_URL:-}" ]; then
-    PARSED_DOMAIN=$(echo "${CLIENT_URL}" | sed -E 's|^https?://([^:/]+).*|\1|')
-    if [ "${PARSED_DOMAIN}" != "localhost" ] && [ "${PARSED_DOMAIN}" != "127.0.0.1" ] && ! [[ "${PARSED_DOMAIN}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        APP_TARGET_DOMAIN="${PARSED_DOMAIN}"
-    fi
-fi
 
 SSL_CERT_PATH="/etc/ssl/certs/uzhunnungal-traders.crt"
 SSL_KEY_PATH="/etc/ssl/private/uzhunnungal-traders.key"
-CERT_INSTALLED=false
-
-# If a valid domain is provided (not an IP address or localhost), attempt Certbot
-if [ -n "${APP_TARGET_DOMAIN}" ] && [ "${APP_TARGET_DOMAIN}" != "localhost" ] && [ "${APP_TARGET_DOMAIN}" != "YOUR_DOMAIN" ] && ! [[ "${APP_TARGET_DOMAIN}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    echo "==> Valid domain detected: '${APP_TARGET_DOMAIN}'. Checking Let's Encrypt certificate..."
-    LE_DIR="/etc/letsencrypt/live/${APP_TARGET_DOMAIN}"
-    if [ -f "${LE_DIR}/fullchain.pem" ] && [ -f "${LE_DIR}/privkey.pem" ]; then
-        echo "==> Existing Let's Encrypt certificate found for ${APP_TARGET_DOMAIN}."
-        $SUDO_CMD ln -sf "${LE_DIR}/fullchain.pem" "${SSL_CERT_PATH}"
-        $SUDO_CMD ln -sf "${LE_DIR}/privkey.pem" "${SSL_KEY_PATH}"
-        CERT_INSTALLED=true
-    elif command -v certbot &>/dev/null; then
-        echo "==> Attempting Let's Encrypt issuance via Certbot for ${APP_TARGET_DOMAIN}..."
-        # First ensure temporary self-signed cert exists so Nginx can start if needed
-        if [ ! -f "${SSL_CERT_PATH}" ] || [ ! -f "${SSL_KEY_PATH}" ]; then
-            $SUDO_CMD openssl req -x509 -nodes -days 30 -newkey rsa:2048 \
-                -keyout "${SSL_KEY_PATH}" \
-                -out "${SSL_CERT_PATH}" \
-                -subj "/CN=${APP_TARGET_DOMAIN}"
-            $SUDO_CMD chmod 600 "${SSL_KEY_PATH}"
-            $SUDO_CMD chmod 644 "${SSL_CERT_PATH}"
-        fi
-        
-        # Ensure Nginx is running to serve the ACME challenge
-        $SUDO_CMD cp "${SCRIPT_DIR}/nginx.conf" /etc/nginx/sites-available/uzhunnungal-traders.conf
-        $SUDO_CMD ln -sf /etc/nginx/sites-available/uzhunnungal-traders.conf /etc/nginx/sites-enabled/uzhunnungal-traders.conf
-        $SUDO_CMD rm -f /etc/nginx/sites-enabled/default
-        $SUDO_CMD systemctl reload nginx 2>/dev/null || $SUDO_CMD systemctl restart nginx 2>/dev/null || true
-        
-        if $SUDO_CMD certbot certonly --webroot -w /var/www/certbot -d "${APP_TARGET_DOMAIN}" --non-interactive --agree-tos --email "${SSL_EMAIL:-admin@${APP_TARGET_DOMAIN}}" --no-eff-email 2>/dev/null; then
-            echo "==> Certbot certificate obtained successfully for ${APP_TARGET_DOMAIN}!"
-            $SUDO_CMD ln -sf "${LE_DIR}/fullchain.pem" "${SSL_CERT_PATH}"
-            $SUDO_CMD ln -sf "${LE_DIR}/privkey.pem" "${SSL_KEY_PATH}"
-            CERT_INSTALLED=true
-        else
-            echo "==> Certbot challenge did not succeed (DNS not propagated or rate-limited). Falling back to self-signed certificate."
-        fi
+if [ -e "${SSL_CERT_PATH}" ] || [ -e "${SSL_KEY_PATH}" ]; then
+    if [ ! -f "${SSL_CERT_PATH}" ] || [ ! -f "${SSL_KEY_PATH}" ] || ! $SUDO_CMD openssl x509 -in "${SSL_CERT_PATH}" -checkend 0 -noout >/dev/null 2>&1 || ! $SUDO_CMD openssl x509 -in "${SSL_CERT_PATH}" -checkip 127.0.0.1 -noout >/dev/null 2>&1; then
+        echo "ERROR: Existing TLS certificate/key is incomplete, expired, or lacks a 127.0.0.1 IP SAN. Repair it manually; deployment will not replace it." >&2
+        exit 1
     fi
-fi
-
-# If Certbot was not applicable or failed, ensure valid self-signed certificate exists
-if [ "${CERT_INSTALLED}" = false ]; then
-    # Check if a valid certificate already exists
-    if [ -f "${SSL_CERT_PATH}" ] && [ -f "${SSL_KEY_PATH}" ] && openssl x509 -in "${SSL_CERT_PATH}" -noout 2>/dev/null; then
-        echo "==> Valid SSL certificate already present at ${SSL_CERT_PATH}."
-    else
-        CERT_CN="${APP_TARGET_DOMAIN:-${PUBLIC_IP:-localhost}}"
-        echo "==> Generating self-signed SSL certificate (CN=${CERT_CN})..."
-        $SUDO_CMD rm -f "${SSL_CERT_PATH}" "${SSL_KEY_PATH}"
-        $SUDO_CMD openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-            -keyout "${SSL_KEY_PATH}" \
-            -out "${SSL_CERT_PATH}" \
-            -subj "/C=IN/ST=Kerala/L=Wayanad/O=Uzhunnungal Traders/CN=${CERT_CN}"
-        $SUDO_CMD chmod 600 "${SSL_KEY_PATH}"
-        $SUDO_CMD chmod 644 "${SSL_CERT_PATH}"
-        echo "==> Self-signed SSL certificate generated successfully."
+    echo "==> Reusing existing TLS certificate at ${SSL_CERT_PATH}."
+else
+    CERT_CN=localhost
+    CERT_SAN="DNS:localhost,IP:127.0.0.1"
+    if [[ "${PUBLIC_IP}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        CERT_CN="${PUBLIC_IP}"
+        CERT_SAN+=",IP:${PUBLIC_IP}"
     fi
+    echo "==> Generating self-signed TLS certificate for local HTTPS..."
+    $SUDO_CMD openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout "${SSL_KEY_PATH}" \
+        -out "${SSL_CERT_PATH}" \
+        -subj "/CN=${CERT_CN}" \
+        -addext "subjectAltName=${CERT_SAN}"
+    $SUDO_CMD chmod 600 "${SSL_KEY_PATH}"
+    $SUDO_CMD chmod 644 "${SSL_CERT_PATH}"
 fi
 
 # Deploy Nginx site configuration
@@ -306,13 +256,27 @@ if command -v systemctl &>/dev/null; then
 else
     $SUDO_CMD service nginx reload || $SUDO_CMD service nginx restart
 fi
-echo "==> Nginx reverse proxy running with active SSL."
+
+# Fail closed if another service still owns HTTP or local HTTPS is unavailable.
+if ! command -v ss &>/dev/null; then
+    echo "ERROR: ss is required to verify that port 80 is closed." >&2
+    exit 1
+fi
+PORT80_LISTENERS=$($SUDO_CMD ss -H -ltn '( sport = :80 )')
+if [ -n "${PORT80_LISTENERS}" ]; then
+    echo "ERROR: Port 80 is still listening. Disable the remaining service before exposing the app." >&2
+    exit 1
+fi
+if ! curl --fail --silent --show-error --max-time 10 --cacert "${SSL_CERT_PATH}" -o /dev/null https://127.0.0.1:3424/api/health; then
+    echo "ERROR: Local HTTPS health check failed on port 3424." >&2
+    exit 1
+fi
+echo "==> Nginx HTTPS on port 3424 verified; port 80 is closed."
 
 echo "=========================================="
 echo " Deployment completed successfully!       "
 echo " Database: MySQL (${DB_NAME})             "
-echo " App (HTTP):  http://${PUBLIC_IP}         "
-echo " App (HTTPS): https://${PUBLIC_IP}        "
+echo " App (HTTPS): https://${PUBLIC_IP}:3424   "
 echo " Status:      pm2 status                  "
 echo " Logs:        pm2 logs uzhunnungal-traders"
 echo "=========================================="

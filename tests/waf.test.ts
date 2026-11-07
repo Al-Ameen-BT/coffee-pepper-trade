@@ -113,6 +113,25 @@ describe("Web Application Firewall (WAF) & Bot Defense", () => {
   });
 
   describe("Rate Limiter", () => {
+    it("uses the trusted proxy hop rather than a spoofed forwarded prefix", async () => {
+      const rateLimitApp = express();
+      rateLimitApp.set("trust proxy", 1);
+      rateLimitApp.use(createRateLimiter({ windowMs: 60_000, maxRequests: 2, skipInTests: false }));
+      rateLimitApp.get("/rate-test", (_req, res) => res.json({ ok: true }));
+
+      for (const spoofedPrefix of ["198.51.100.1", "198.51.100.2"]) {
+        const res = await request(rateLimitApp)
+          .get("/rate-test")
+          .set("X-Forwarded-For", `${spoofedPrefix}, 203.0.113.9`);
+        expect(res.status).toBe(200);
+      }
+
+      const blocked = await request(rateLimitApp)
+        .get("/rate-test")
+        .set("X-Forwarded-For", "198.51.100.3, 203.0.113.9");
+      expect(blocked.status).toBe(429);
+    });
+
     it("throttles requests when limit is exceeded", async () => {
       const testLimiter = createRateLimiter({
         windowMs: 1000,

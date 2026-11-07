@@ -1,7 +1,9 @@
 import { defineConfig } from "vite";
 import { resolve } from "path";
+import { version } from "./package.json";
 
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(version) },
   root: "client",
   build: {
     outDir: "../dist/client",

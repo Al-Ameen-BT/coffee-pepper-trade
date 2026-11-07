@@ -27,7 +27,7 @@ fi
 # 2. Update System Packages & Install Dependencies
 echo "[2/6] Updating system packages & installing Nginx, MySQL, and build tools..."
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y curl git build-essential nginx certbot python3-certbot-nginx mysql-server
+sudo apt install -y curl git build-essential nginx mysql-server
 
 # 3. Configure MySQL for Free Tier (low memory profile to prevent OOM)
 echo "[3/6] Configuring MySQL..."
@@ -76,8 +76,15 @@ sudo npm install -g pm2
 
 # 6. Enable and start Nginx
 echo "[6/6] Enabling Nginx..."
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
 sudo systemctl enable nginx
 sudo systemctl start nginx
+sudo systemctl reload nginx
+if [ -n "$(sudo ss -H -ltn '( sport = :80 )')" ]; then
+    echo "ERROR: Port 80 is still listening; disable the remaining service before deployment." >&2
+    exit 1
+fi
 
 echo "=========================================="
 echo " EC2 Provisioning Complete!               "
